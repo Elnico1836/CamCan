@@ -16,7 +16,7 @@ const char* password = "Luchis12088";
 
 WebServer server(80);
 
-void handleCapture();
+void handleJPGStream();
 void handleLedOn();
 void handleLedOff();
 
@@ -61,9 +61,10 @@ void setup() {
   config.pixel_format = PIXFORMAT_JPEG;
 
   if (psramFound()) {
-    config.frame_size = FRAMESIZE_XGA;
-    config.jpeg_quality = 10;
+    config.frame_size = FRAMESIZE_VGA;
+    config.jpeg_quality = 15;
     config.fb_count = 2;
+    config.xclk_freq_hz = 24000000;
   } else {
     config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 15;
@@ -98,7 +99,7 @@ void setup() {
   Serial.print("ESP32 IP: ");
   Serial.println(WiFi.localIP());
 
-  server.on("/capture", HTTP_GET, handleCapture);
+  server.on("/stream", HTTP_GET, handleJPGStream);
 
   server.on("/led_on", HTTP_GET, handleLedOn);
   server.on("/led_off", HTTP_GET, handleLedOff);
@@ -112,26 +113,43 @@ void loop() {
   server.handleClient();
 }
 
-void handleCapture() {
-
-  camera_fb_t *fb = esp_camera_fb_get();
-
-  if (!fb) {
-    server.send(500, "text/plain", "Error cámara");
-    return;
-  }
+void handleJPGStream() {
 
   WiFiClient client = server.client();
 
-  client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: image/jpeg");
-  client.println("Content-Length: " + String(fb->len));
-  client.println("Access-Control-Allow-Origin: *");
-  client.println();
+  String response =
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n"
+    "Access-Control-Allow-Origin: *\r\n"
+    "Connection: close\r\n\r\n";
 
-  client.write(fb->buf, fb->len);
+  client.print(response);
 
-  esp_camera_fb_return(fb);
+  while (client.connected()) {
+
+    camera_fb_t * fb = esp_camera_fb_get();
+
+    if (!fb) {
+      continue;
+    }
+
+    client.printf(
+      "--frame\r\n"
+      "Content-Type: image/jpeg\r\n"
+      "Content-Length: %u\r\n\r\n",
+      fb->len
+    );
+
+    client.write(fb->buf, fb->len);
+
+    client.print("\r\n");
+
+    esp_camera_fb_return(fb);
+
+    delay(30);
+  }
+
+  client.stop();
 }
 
 void handleLedOn() {
