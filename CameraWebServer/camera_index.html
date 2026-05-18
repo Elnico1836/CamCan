@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trash Can</title>
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/256/2602/2602768.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── CSS VARIABLES ── */
+        :root {
+            --bg: #e0f2f7;
+            --surface: #ffffff;
+            --surface2: #e8f6f3;
+            --border: #ddd;
+            --text-primary: #2c3e50;
+            --text-secondary: #555;
+            --text-muted: #666;
+            --accent: #3498db;
+            --accent-dark: #1f5f85;
+            --green: #2ecc71;
+            --green-dark: #1e8449;
+            --red: #e74c3c;
+            --shadow: rgba(0,0,0,0.15);
+            --overlay-bg: rgba(0,0,0,0.8);
+            --scrollbar-track: #d0e8f5;
+            --scrollbar-thumb: #3498db;
+        }
+        body.dark-theme {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --surface2: #252525;
+            --border: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaa;
+            --text-muted: #888;
+            --accent: #4db8ff;
+            --accent-dark: #2980b9;
+            --shadow: rgba(0,0,0,0.5);
+            --overlay-bg: rgba(0,0,0,0.92);
+            --scrollbar-track: #2a2a2a;
+            --scrollbar-thumb: #4db8ff;
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-dark); }
+
+        /* ── BASE ── */
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-primary);
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+        h1, h2, h3 { color: var(--text-primary); font-weight: 700; margin-bottom: 25px; transition: color 0.4s; }
+        h2 { font-size: 2.2em; margin-top: 30px; margin-bottom: 10px; }
+        h3 { color: var(--text-secondary); font-weight: 400; font-size: 1.2em; margin-bottom: 25px; }
+        p  { color: var(--text-muted); font-size: 1.1em; line-height: 1.6; }
+
+        /* ── DARK MODE TOGGLE ── */
+        #dark-mode-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            background: var(--surface);
+            box-shadow: 0 2px 10px var(--shadow);
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+        }
+        #dark-mode-btn:hover { transform: scale(1.1); box-shadow: 0 4px 16px var(--shadow); }
+
+        /* ── LATERAL PANEL ── */
+        #panel-consejo-lateral {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 260px;
+            padding: 15px 18px;
+            background: linear-gradient(135deg, var(--surface), var(--surface2));
+            border-left: 5px solid var(--green);
+            border-radius: 12px;
+            box-shadow: 0 6px 15px var(--shadow);
+            font-size: 0.95em;
+            color: var(--text-primary);
+            text-align: left;
+            z-index: 9999;
+            transition: background 0.4s, color 0.4s, box-shadow 0.4s;
+        }
+        #panel-consejo-lateral { transition: background 0.4s, color 0.4s, box-shadow 0.4s, border-left-color 0.4s; }
+        #panel-consejo-lateral.caneca-blanca { border-left-color: #2980b9; }
+        #panel-consejo-lateral.caneca-negra  { border-left-color: #2c3e50; }
+        #panel-consejo-lateral.caneca-verde  { border-left-color: #27ae60; }
+        #panel-consejo-lateral.caneca-fondo  { border-left-color: #8e44ad; }
+        body.dark-theme #panel-consejo-lateral.caneca-negra { border-left-color: #7f8c8d; }
+        #texto-consejo-lateral { transition: color 0.5s ease; }
+        #panel-consejo-lateral { transition: background 0.4s, color 0.4s, box-shadow 0.4s, border-left-color 0.5s ease; }
+        #texto-consejo-lateral { transition: color 0.5s ease; }
+        #panel-consejo-lateral.caneca-blanca { border-left-color: #2980b9; }
+        #panel-consejo-lateral.caneca-negra  { border-left-color: #555; }
+        #panel-consejo-lateral.caneca-verde  { border-left-color: #27ae60; }
+        #panel-consejo-lateral.caneca-fondo  { border-left-color: #8e44ad; }
+        body.dark-theme #panel-consejo-lateral.caneca-negra { border-left-color: #95a5a6; }
+        #panel-consejo-lateral strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--green-dark);
+            font-size: 1em;
+        }
+
+        /* ── RESPONSIVE: mobile ── */
+        @media (max-width: 768px) {
+            #panel-consejo-lateral {
+                position: static;
+                transform: none;
+                width: 90%;
+                max-width: 500px;
+                margin: 0 auto 20px auto;
+                right: auto;
+                top: auto;
+            }
+            #dark-mode-btn { top: 10px; right: 10px; }
+        }
+
+        /* ── RESULT PANEL ── */
+        #panel-consejo-resultado {
+            display: none;
+            opacity: 0;
+            margin-top: 15px;
+            max-width: 500px;
+            width: 90%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--surface), var(--surface2));
+            border-top: 5px solid var(--accent);
+            border-radius: 14px;
+            box-shadow: 0 4px 12px var(--shadow);
+            font-size: 0.95em;
+            color: var(--text-primary);
+            text-align: center;
+            transition: opacity 0.4s ease, background 0.4s, color 0.4s;
+        }
+        #panel-consejo-resultado.blanca { border-top-color: #2980b9; }
+        #panel-consejo-resultado.negra  { border-top-color: #2c3e50; }
+        #panel-consejo-resultado.verde  { border-top-color: #27ae60; }
+        #panel-consejo-resultado.verde  #texto-consejo-resultado { color: #1e8449; }
+        #panel-consejo-resultado.fondo  { border-top-color: #8e44ad; }
+        #panel-consejo-resultado.fondo  #texto-consejo-resultado { color: #6c3483; }
+        body.dark-theme #panel-consejo-resultado.blanca #texto-consejo-resultado { color: #5dade2; }
+        body.dark-theme #panel-consejo-resultado.negra  #texto-consejo-resultado { color: #aab7b8; }
+        body.dark-theme #panel-consejo-resultado.verde  #texto-consejo-resultado { color: #2ecc71; }
+        body.dark-theme #panel-consejo-resultado.fondo  #texto-consejo-resultado { color: #bb8fce; }
+
+        /* Color del texto del consejo lateral según caneca seleccionada */
+        #panel-consejo-lateral.caneca-blanca #texto-consejo-lateral { color: #1a6fa8; }
+        #panel-consejo-lateral.caneca-negra  #texto-consejo-lateral { color: #2c3e50; }
+        #panel-consejo-lateral.caneca-verde  #texto-consejo-lateral { color: #1e8449; }
+        #panel-consejo-lateral.caneca-fondo  #texto-consejo-lateral { color: #6c3483; }
+        body.dark-theme #panel-consejo-lateral.caneca-blanca #texto-consejo-lateral { color: #5dade2; }
+        body.dark-theme #panel-consejo-lateral.caneca-negra  #texto-consejo-lateral { color: #aab7b8; }
+        body.dark-theme #panel-consejo-lateral.caneca-verde  #texto-consejo-lateral { color: #2ecc71; }
+        body.dark-theme #panel-consejo-lateral.caneca-fondo  #texto-consejo-lateral { color: #bb8fce; }
+        #panel-consejo-resultado.visible { opacity: 1; }
+
+        /* ── DEBUG PANEL ── */
+        #debug-panel {
+            display: none;
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.85);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 0.75em;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 320px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 9999;
+        }
+
+        /* ── CAMERA ── */
+        .camera-container {
+            border: 3px solid var(--accent);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            max-width: 800px;
+            height: auto;
+            position: relative;
+            box-shadow: 0 10px 18px var(--shadow);
+            transition: border-color 0.4s;
+        }
+        .camera-container__stream {
+            width: 100%;
+            height: auto;
+            display: block;
+            background-color: #000;
+            color: #FFF;
+            text-align: center;
+            line-height: 480px;
+            font-size: 20px;
+        }
+
+        /* ── LASER SCANNER ── */
+        #laser-scanner {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent 0%, #00ff88 20%, #00ffcc 50%, #00ff88 80%, transparent 100%);
+            box-shadow: 0 0 12px #00ff88, 0 0 24px #00ffcc, 0 0 4px #fff;
+            border-radius: 2px;
+            z-index: 5;
+            animation: laserScan 1.8s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes laserScan {
+            0%   { top: 0%; opacity: 0.9; }
+            50%  { top: calc(100% - 4px); opacity: 1; }
+            100% { top: 0%; opacity: 0.9; }
+        }
+
+        /* ── CONFIG SECTION ── */
+        .config-section {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            display: none;
+            opacity: 0;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 18px var(--shadow);
+            transition: opacity 0.3s ease, background 0.4s, border-color 0.4s;
+        }
+        .config-section.visible { opacity: 1; }
+
+        /* ── BUTTONS ── */
+        .button {
+            background: linear-gradient(145deg, #3aa0e6, #2c80b4);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 1.1em;
+            font-weight: 700;
+            box-shadow: 0 5px 0 var(--accent-dark), 0 8px 15px rgba(0,0,0,0.2);
+            transition: all 0.15s ease;
+        }
+        .button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 7px 0 var(--accent-dark), 0 12px 22px rgba(0,0,0,0.3);
+        }
+        .button:active { transform: translateY(4px) scale(0.98); box-shadow: 0 2px 0 var(--accent-dark), 0 6px 15px rgba(0,0,0,0.2); }
+        .button--inline    { line-height: 25px; margin: 2px; padding: 2px 8px; }
+        .button--disabled  { cursor: default; background: #a0a0a0; box-shadow: none; transform: none; }
+        .button--disabled:hover { transform: none; box-shadow: none; }
+
+        /* ── MENU ── */
+        .menu { display: flex; flex-direction: column; flex-wrap: nowrap; background: var(--surface); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.4s; }
+        .menu__input-group { display: flex; flex-wrap: nowrap; line-height: 28px; margin: 8px 0; align-items: center; }
+        .menu__input-group > label { display: inline-block; padding-right: 15px; min-width: 150px; font-weight: 500; color: var(--text-secondary); }
+        .menu__input-group input, .menu__input-group select { flex-grow: 1; border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; height: 35px; font-size: 1em; background: var(--surface); color: var(--text-primary); transition: background 0.4s, border-color 0.4s, color 0.4s; }
+        .menu__range-min, .menu__range-max { display: inline-block; padding: 0 8px; font-weight: 500; color: var(--text-secondary); }
+        .menu__range-input { appearance: none; width: 100%; height: 10px; background: #dbe4ed; cursor: pointer; margin: 0; border-radius: 5px; }
+        .menu__range-input::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: var(--accent); margin-top: -5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .menu__text-input { border: 1px solid var(--border); font-size: 1em; height: 30px; margin: 2px; outline: 0; border-radius: 5px; padding: 0 8px; background: var(--surface); color: var(--text-primary); transition: background 0.4s, color 0.4s; }
+
+        /* ── SWITCH ── */
+        .switch { position: relative; display: inline-block; width: 55px; height: 28px; margin-left: auto; }
+        .switch__input { opacity: 0; width: 0; height: 0; }
+        .switch__slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
+        .switch__slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .switch__input:checked + .switch__slider { background-color: var(--green); }
+        .switch__input:checked + .switch__slider:before { transform: translateX(26px); }
+
+        .toggle-section-label { cursor: pointer; display: block; font-weight: bold; margin-top: 15px; margin-bottom: 8px; color: var(--text-primary); font-size: 1.1em; }
+        .toggle-section-input { outline: 0; opacity: 0; width: 0; height: 0; }
+        .toggle-section-input:checked + .toggle-section { display: none; }
+        .separator { width: 100%; border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+
+        /* ── CANECA ── */
+        .caneca-question { color: var(--text-secondary); margin-bottom: 0; display: block; font-size: 1.1em; }
+        .caneca-selection {
+            display: flex; justify-content: center; align-items: center;
+            gap: 40px; margin: 40px 0; width: 100%; flex-wrap: wrap;
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        .caneca-selection.visible { opacity: 1; }
+        .caneca-button {
+            background-color: var(--surface); border: 2px solid var(--border); border-radius: 25px;
+            padding: 25px; cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            display: flex; flex-direction: column; align-items: center;
+            text-align: center; width: 220px; height: 300px; justify-content: space-around;
+            box-shadow: 0 6px 12px var(--shadow);
+        }
+        .caneca-button:hover { background-color: var(--surface2); border-color: #95a5a6; transform: translateY(-5px) scale(1.03); box-shadow: 0 14px 28px var(--shadow); }
+        .caneca-button__image { width: 160px; height: 160px; border-radius: 20px; object-fit: contain; margin-bottom: 20px; }
+        .caneca-button__text  { font-weight: 700; color: var(--text-primary); font-size: 1.5em; }
+
+        /* ── PREDICTION RESULT ── */
+        .prediction-result {
+            display: none;
+            opacity: 0;
+            text-align: center; margin-top: 30px;
+            font-size: 1.8em; font-weight: 700; padding: 20px; border-radius: 15px;
+            background-color: var(--surface); box-shadow: 0 5px 15px var(--shadow);
+            transition: opacity 0.4s ease, background 0.4s;
+        }
+        .prediction-result.visible { opacity: 1; }
+        .prediction-result__icon--correct   { color: var(--green); font-size: 4em; margin-bottom: 10px; }
+        .prediction-result__icon--incorrect { color: var(--red); font-size: 4em; margin-bottom: 10px; }
+        .prediction-result__message--correct   { color: #27ae60; font-size: 1.2em; }
+        .prediction-result__message--incorrect { color: #c0392b; font-size: 1.2em; }
+
+        /* ── NEXT SECTION ── */
+        .next-section {
+            display: none;
+            opacity: 0;
+            margin-top: 40px; padding: 30px; border: 1px solid var(--border);
+            border-radius: 15px; background-color: var(--surface); width: 80%; max-width: 700px;
+            text-align: center; box-shadow: 0 5px 15px var(--shadow);
+            transition: opacity 0.4s ease, background 0.4s;
+        }
+        .next-section.visible { opacity: 1; }
+        .next-section__title   { color: var(--text-primary); font-size: 1.8em; margin-bottom: 15px; }
+        .next-section__message { font-size: 1.1em; margin-bottom: 25px; }
+        .next-section__buttons { display: flex; justify-content: center; gap: 20px; }
+
+        /* ── CONFIG BUTTON (gear on camera) ── */
+        .config-button {
+            position: absolute; top: 15px; right: 15px;
+            background-color: rgba(0,0,0,0.6); border: none; border-radius: 50%;
+            width: 45px; height: 45px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-size: 28px; color: white; z-index: 10;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .config-button:hover { background-color: rgba(0,0,0,0.8); transform: rotate(90deg); }
+
+        /* ── OVERLAY ── */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--overlay-bg); display: none; opacity: 0;
+            justify-content: center; align-items: center; z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+        .overlay.visible { opacity: 1; }
+        .admin-panel {
+            background-color: var(--surface); padding: 40px; border-radius: 25px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 450px;
+            transition: background 0.4s;
+            transform: scale(0.9);
+            transition: transform 0.3s ease, background 0.4s;
+        }
+        .overlay.visible .admin-panel { transform: scale(1); }
+        .admin-panel__title { margin-top: 0; color: var(--text-primary); font-size: 2em; margin-bottom: 25px; }
+        .admin-panel__input-group { justify-content: space-between; margin-bottom: 20px; }
+
+        /* ── PASSWORD OVERLAY ── */
+        .password-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--overlay-bg); display: none; opacity: 0;
+            justify-content: center; align-items: center; z-index: 101;
+            transition: opacity 0.3s ease;
+        }
+        .password-overlay.visible { opacity: 1; }
+        .password-panel {
+            background-color: var(--surface); padding: 30px; border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3); text-align: center; width: 80%; max-width: 350px;
+            transform: scale(0.9);
+            transition: transform 0.3s ease, background 0.4s;
+        }
+        .password-overlay.visible .password-panel { transform: scale(1); }
+        .password-panel__title { margin-top: 0; color: var(--text-primary); font-size: 1.5em; margin-bottom: 20px; }
+        .password-panel__input {
+            width: calc(100% - 20px); padding: 10px; margin-bottom: 20px;
+            border: 1px solid var(--border); border-radius: 5px; font-size: 1em;
+            background: var(--surface); color: var(--text-primary);
+            transition: background 0.4s, color 0.4s;
+        }
+        .password-panel__buttons { display: flex; justify-content: center; gap: 15px; }
+
+        /* ── MISC ── */
+        .hidden { display: none; }
+        .percentage-text { text-align: center; margin-top: 8px; font-weight: bold; color: var(--text-primary); }
+        .error-message { color: var(--red); font-weight: bold; margin-bottom: 20px; text-align: center; font-size: 1.1em; }
+
+        .admin-mode-button {
+            display: none; margin-top: 20px; padding: 15px 30px; font-size: 1.2em;
+            font-weight: bold; background-color: #28a745; color: white; border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .admin-mode-button:hover { background-color: #218838; transform: translateY(-3px) scale(1.05); box-shadow: 0 8px 18px rgba(0,0,0,0.25); }
+
+        /* ── SPINNER ── */
+        #loading-spinner {
+            display: none;
+            opacity: 0;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            gap: 12px;
+            transition: opacity 0.3s ease;
+        }
+        #loading-spinner.visible { opacity: 1; }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 5px solid #d0e8f5;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading-spinner p { color: var(--text-secondary); font-size: 1em; margin: 0; transition: color 0.4s; }
+
+        /* ── TOAST NOTIFICATIONS ── */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--surface);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px var(--shadow);
+            font-size: 0.95em;
+            font-family: 'Roboto', sans-serif;
+            max-width: 320px;
+            border-left: 4px solid var(--accent);
+            animation: toastIn 0.3s ease forwards;
+            pointer-events: auto;
+            transition: background 0.4s, color 0.4s;
+        }
+        .toast.toast--error { border-left-color: var(--red); }
+        .toast.toast--success { border-left-color: var(--green); }
+        .toast.toast--warning { border-left-color: #f39c12; }
+        .toast.toast-out { animation: toastOut 0.3s ease forwards; }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(60px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateX(0); }
+            to   { opacity: 0; transform: translateX(60px); }
+        }
+
+        /* ── SALVAPANTALLAS ── */
+        #screensaver {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 999999;
+            overflow: hidden;
+            cursor: none;
+        }
+        #screensaver.active { display: block; }
+
+        /* Fondo estrellado animado */
+        #screensaver-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+
+        /* Contenido central del salvapantallas */
+        .ss-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #fff;
+            pointer-events: none;
+            animation: ssPulse 3s ease-in-out infinite;
+            z-index: 2;
+        }
+        .ss-icon {
+            font-size: 6em;
+            display: block;
+            margin-bottom: 16px;
+            animation: ssFloat 4s ease-in-out infinite;
+            filter: drop-shadow(0 0 30px rgba(52,152,219,0.8));
+        }
+        .ss-title {
+            font-family: 'Roboto', sans-serif;
+            font-size: 2.2em;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-shadow: 0 0 30px rgba(52,152,219,0.9), 0 0 60px rgba(52,152,219,0.5);
+            margin-bottom: 12px;
+            background: linear-gradient(90deg, #3498db, #2ecc71, #9b59b6, #3498db);
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: ssGradient 4s linear infinite;
+        }
+        .ss-subtitle {
+            font-family: 'Roboto', sans-serif;
+            font-size: 1em;
+            font-weight: 300;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .ss-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.85em;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 1px;
+            animation: ssBlink 2s ease-in-out infinite;
+        }
+
+        /* Orbes flotantes decorativos */
+        .ss-orb {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(60px);
+            opacity: 0.15;
+            animation: ssOrb linear infinite;
+        }
+
+        @keyframes ssFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50%       { transform: translateY(-18px) scale(1.05); }
+        }
+        @keyframes ssPulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.85; }
+        }
+        @keyframes ssGradient {
+            0%   { background-position: 0% center; }
+            100% { background-position: 300% center; }
+        }
+        @keyframes ssBlink {
+            0%, 100% { opacity: 0.3; }
+            50%       { opacity: 0.7; }
+        }
+        @keyframes ssOrb {
+            0%   { transform: translate(0, 0) scale(1); }
+            33%  { transform: translate(60px, -80px) scale(1.2); }
+            66%  { transform: translate(-40px, 50px) scale(0.9); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        /* ── CONFETTI ── */
+        #confetti-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 99998;
+            overflow: hidden;
+        }
+        .confetti-piece {
+            position: absolute;
+            top: -10px;
+            width: 10px; height: 14px;
+            border-radius: 2px;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            0%   { transform: translateY(0) rotate(0deg) scaleX(1); opacity: 1; }
+            80%  { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg) scaleX(-1); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── SALVAPANTALLAS ── -->
+    <div id="screensaver">
+        <canvas id="screensaver-canvas"></canvas>
+        <!-- Orbes de color de fondo -->
+        <div class="ss-orb" style="width:500px;height:500px;background:#3498db;top:-100px;left:-100px;animation-duration:18s;"></div>
+        <div class="ss-orb" style="width:400px;height:400px;background:#2ecc71;bottom:-80px;right:-80px;animation-duration:22s;animation-delay:-8s;"></div>
+        <div class="ss-orb" style="width:350px;height:350px;background:#9b59b6;top:40%;left:60%;animation-duration:15s;animation-delay:-4s;"></div>
+        <!-- Contenido central -->
+        <div class="ss-center">
+            <span class="ss-icon">♻️</span>
+            <div class="ss-title">AI Trash Can</div>
+            <div class="ss-subtitle">Clasificador inteligente de residuos</div>
+        </div>
+        <div class="ss-hint">Toca cualquier tecla o mueve el mouse para continuar</div>
+    </div>
+
+    <!-- Dark mode toggle -->
+    <button id="dark-mode-btn" title="Alternar modo oscuro">🌙</button>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <!-- Confetti container -->
+    <div id="confetti-container"></div>
+
+    <div id="panel-consejo-lateral">
+        <strong>💡 Consejo de reciclaje</strong>
+        <span id="texto-consejo-lateral">Reciclar reduce la cantidad de residuos que llegan a los rellenos sanitarios.</span>
+    </div>
+
+    <div id="debug-panel"></div>
+
+    <div id="model-error" class="error-message hidden">
+        ⚠ Error al conectar con el servidor de predicción. Verifica la conexión.
+    </div>
+
+    <div class="camera-container" id="camera-container">
+        <img class="camera-container__stream" id="camera-stream" src="" alt="Cámara aquí">
+        <div id="laser-scanner"></div>
+        <button class="config-button" id="config-button">⚙️</button>
+    </div>
+
+    <div class="config-section" id="configSection">
+        <h2>Configuración de la Cámara</h2>
+        <p>Ajustes de la cámara y otros parámetros.</p>
+        <nav class="menu" id="menu">
+            <section id="xclk-section" class="nothidden">
+                <div class="menu__input-group" id="set-xclk-group">
+                    <label for="xclk">XCLK MHz</label>
+                    <div class="text"><input id="xclk" type="text" minlength="1" maxlength="2" size="2" value="20" class="menu__text-input"></div>
+                    <button class="button button--inline" id="set-xclk">Set</button>
+                </div>
+            </section>
+            <div class="menu__input-group" id="framesize-group">
+                <label for="framesize">Resolution</label>
+                <select id="framesize" class="default-action menu__input-group__select">
+                    <option value="13">UXGA(1600x1200)</option><option value="12">SXGA(1280x1024)</option>
+                    <option value="11">HD(1280x720)</option><option value="10">XGA(1024x768)</option>
+                    <option value="9">SVGA(800x600)</option><option value="8" selected>VGA(640x480)</option>
+                    <option value="7">HVGA(480x320)</option><option value="6">CIF(400x296)</option>
+                    <option value="5">QVGA(320x240)</option><option value="4">240x240</option>
+                    <option value="3">HQVGA(240x176)</option><option value="2">QCIF(176x144)</option>
+                    <option value="1">QQVGA(160x120)</option><option value="0">96x96</option>
+                </select>
+            </div>
+            <div class="menu__input-group" id="quality-group"><label for="quality">Quality</label><div class="menu__range-min">4</div><input type="range" id="quality" min="4" max="63" value="5" class="default-action menu__range-input"><div class="menu__range-max">63</div></div>
+            <div class="menu__input-group" id="brightness-group"><label for="brightness">Brightness</label><div class="menu__range-min">-2</div><input type="range" id="brightness" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
+            <div class="menu__input-group" id="contrast-group"><label for="contrast">Contrast</label><div class="menu__range-min">-2</div><input type="range" id="contrast" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
+            <div class="menu__input-group" id="saturation-group"><label for="saturation">Saturation</label><div class="menu__range-min">-2</div><input type="range" id="saturation" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
+            <div class="menu__input-group" id="special_effect-group">
+                <label for="special_effect">Special Effect</label>
+                <select id="special_effect" class="default-action menu__input-group__select">
+                    <option value="0" selected>No Effect</option><option value="1">Negative</option>
+                    <option value="2">Grayscale</option><option value="3">Red Tint</option>
+                    <option value="4">Green Tint</option><option value="5">Blue Tint</option><option value="6">Sepia</option>
+                </select>
+            </div>
+            <div class="menu__input-group" id="awb-group"><label for="awb">AWB</label><div class="switch"><input id="awb" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="awb"></label></div></div>
+            <div class="menu__input-group" id="awb_gain-group"><label for="awb_gain">AWB Gain</label><div class="switch"><input id="awb_gain" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="awb_gain"></label></div></div>
+            <div class="menu__input-group" id="wb_mode-group"><label for="wb_mode">WB Mode</label><select id="wb_mode" class="default-action menu__input-group__select"><option value="0" selected>Auto</option><option value="1">Sunny</option><option value="2">Cloudy</option><option value="3">Office</option><option value="4">Home</option></select></div>
+            <div class="menu__input-group" id="aec-group"><label for="aec">AEC SENSOR</label><div class="switch"><input id="aec" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="aec"></label></div></div>
+            <div class="menu__input-group" id="aec2-group"><label for="aec2">AEC DSP</label><div class="switch"><input id="aec2" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="aec2"></label></div></div>
+            <div class="menu__input-group" id="ae_level-group"><label for="ae_level">AE Level</label><div class="menu__range-min">-2</div><input type="range" id="ae_level" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
+            <div class="menu__input-group" id="aec_value-group"><label for="aec_value">Exposure</label><div class="menu__range-min">0</div><input type="range" id="aec_value" min="0" max="1200" value="204" class="default-action menu__range-input"><div class="menu__range-max">1200</div></div>
+            <div class="menu__input-group" id="agc-group"><label for="agc">AGC</label><div class="switch"><input id="agc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="agc"></label></div></div>
+            <div class="menu__input-group hidden" id="agc_gain-group"><label for="agc_gain">Gain</label><div class="menu__range-min">1x</div><input type="range" id="agc_gain" min="0" max="30" value="5" class="default-action menu__range-input"><div class="menu__range-max">31x</div></div>
+            <div class="menu__input-group" id="gainceiling-group"><label for="gainceiling">Gain Ceiling</label><div class="menu__range-min">2x</div><input type="range" id="gainceiling" min="0" max="6" value="0" class="default-action menu__range-input"><div class="menu__range-max">128x</div></div>
+            <div class="menu__input-group" id="bpc-group"><label for="bpc">BPC</label><div class="switch"><input id="bpc" type="checkbox" class="default-action switch__input"><label class="switch__slider" for="bpc"></label></div></div>
+            <div class="menu__input-group" id="wpc-group"><label for="wpc">WPC</label><div class="switch"><input id="wpc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="wpc"></label></div></div>
+            <div class="menu__input-group" id="raw_gma-group"><label for="raw_gma">Raw GMA</label><div class="switch"><input id="raw_gma" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="raw_gma"></label></div></div>
+            <div class="menu__input-group" id="lenc-group"><label for="lenc">Lens Correction</label><div class="switch"><input id="lenc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="lenc"></label></div></div>
+            <div class="menu__input-group" id="hmirror-group"><label for="hmirror">H-Mirror</label><div class="switch"><input id="hmirror" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="hmirror"></label></div></div>
+            <div class="menu__input-group" id="vflip-group"><label for="vflip">V-Flip</label><div class="switch"><input id="vflip" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="vflip"></label></div></div>
+            <div class="menu__input-group" id="dcw-group"><label for="dcw">DCW (Downsize EN)</label><div class="switch"><input id="dcw" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="dcw"></label></div></div>
+            <div class="menu__input-group" id="colorbar-group"><label for="colorbar">Color Bar</label><div class="switch"><input id="colorbar" type="checkbox" class="default-action switch__input"><label class="switch__slider" for="colorbar"></label></div></div>
+            <div class="menu__input-group" id="led-group"><label for="led_intensity">LED Intensity</label><div class="menu__range-min">0</div><input type="range" id="led_intensity" min="0" max="255" value="0" class="default-action menu__range-input"><div class="menu__range-max">255</div></div>
+            <section id="buttons" class="hidden"></section>
+
+            <div style="margin-top:15px;"><center><span style="font-weight:bold;color:var(--text-primary);font-size:1.2em;">Advanced Settings</span></center></div>
+            <hr class="separator">
+            <label for="nav-toggle-reg" class="toggle-section-label">&#9776;&nbsp;&nbsp;Register Get/Set</label>
+            <input type="checkbox" id="nav-toggle-reg" class="hidden toggle-section-input" checked>
+            <section class="toggle-section">
+                <div class="menu__input-group" id="set-reg-group">
+                    <label for="set-reg">Reg, Mask, Value</label>
+                    <div class="text"><input id="reg-addr" type="text" minlength="4" maxlength="6" size="6" value="0x111" class="menu__text-input"></div>
+                    <div class="text"><input id="reg-mask" type="text" minlength="4" maxlength="4" size="4" value="0x80" class="menu__text-input"></div>
+                    <div class="text"><input id="reg-value" type="text" minlength="4" maxlength="4" size="4" value="0x80" class="menu__text-input"></div>
+                    <button class="button button--inline" id="set-reg">Set</button>
+                </div>
+                <hr class="separator" style="width:50%">
+                <div class="menu__input-group" id="get-reg-group">
+                    <label for="get-reg">Reg, Mask</label>
+                    <div class="text"><input id="get-reg-addr" type="text" minlength="4" maxlength="6" size="6" value="0x111" class="menu__text-input"></div>
+                    <div class="text"><input id="get-reg-mask" type="text" minlength="4" maxlength="6" size="6" value="0x80" class="menu__text-input"></div>
+                    <button class="button button--inline" id="get-reg">Get</button>
+                </div>
+                <div class="menu__input-group"><label for="get-reg-value">Value</label><div class="text"><span id="get-reg-value">0x1234</span></div></div>
+            </section>
+            <hr class="separator">
+            <label for="nav-toggle-2640pll" class="toggle-section-label">&#9776;&nbsp;&nbsp;CLK</label>
+            <input type="checkbox" id="nav-toggle-2640pll" class="hidden toggle-section-input" checked>
+            <section class="toggle-section">
+                <div class="menu__input-group"><label for="2640pll1">CLK 2X</label><div class="switch"><input id="2640pll1" type="checkbox" class="reg-action switch__input" reg="0x111" offset="7" mask="0x01"><label class="switch__slider" for="2640pll1"></label></div></div>
+                <div class="menu__input-group"><label for="2640pll3">CLK DIV</label><div class="text">0<input id="2640pll3" type="text" minlength="1" maxlength="2" size="2" value="1" class="reg-action menu__text-input" reg="0x111" offset="0" mask="0x3f">63</div></div>
+                <div class="menu__input-group"><label for="2640pll5">Auto PCLK</label><div class="switch"><input id="2640pll5" type="checkbox" class="reg-action switch__input" reg="0xd3" offset="7" mask="0x01"><label class="switch__slider" for="2640pll5"></label></div></div>
+                <div class="menu__input-group"><label for="2640pll4">PCLK DIV</label><div class="text">0<input id="2640pll4" type="text" minlength="1" maxlength="3" size="3" value="4" class="reg-action menu__text-input" reg="0xd3" offset="0" mask="0x7f">127</div></div>
+            </section>
+            <hr class="separator">
+            <label for="nav-toggle-win" class="toggle-section-label">&#9776;&nbsp;&nbsp;Window</label>
+            <input type="checkbox" id="nav-toggle-win" class="hidden toggle-section-input" checked>
+            <section class="toggle-section">
+                <div class="menu__input-group"><label for="start-x">Sensor Resolution</label><select id="start-x" class="menu__input-group__select"><option value="2">CIF (400x296)</option><option value="1">SVGA (800x600)</option><option value="0" selected>UXGA (1600x1200)</option></select></div>
+                <div class="menu__input-group" id="set-offset-res-group"><label for="offset-x">Offset</label><div class="text">X:<input id="offset-x" type="text" minlength="1" maxlength="3" size="6" value="400" class="menu__text-input"></div><div class="text">Y:<input id="offset-y" type="text" minlength="1" maxlength="3" size="6" value="300" class="menu__text-input"></div></div>
+                <div class="menu__input-group" id="set-total-res-group"><label for="total-x">Window Size</label><div class="text">X:<input id="total-x" type="text" minlength="1" maxlength="4" size="6" value="800" class="menu__text-input"></div><div class="text">Y:<input id="total-y" type="text" minlength="1" maxlength="4" size="6" value="600" class="menu__text-input"></div></div>
+                <div class="menu__input-group" id="set-output-res-group"><label for="output-x">Output Size</label><div class="text">X:<input id="output-x" type="text" minlength="1" maxlength="4" size="6" value="320" class="menu__text-input"></div><div class="text">Y:<input id="output-y" type="text" minlength="1" maxlength="4" size="6" value="240" class="menu__text-input"></div></div>
+                <button class="button" id="set-resolution">Set Resolution</button>
+            </section>
+        </nav>
+    </div>
+
+    <div class="overlay" id="config-overlay">
+        <div class="admin-panel" id="admin-config-panel">
+            <h2 class="admin-panel__title">Opción de Administrador</h2>
+            <div class="menu__input-group admin-panel__input-group">
+                <label for="admin-switch">Activar Funcionalidad</label>
+                <div class="switch"><input id="admin-switch" type="checkbox" class="switch__input"><label class="switch__slider" for="admin-switch"></label></div>
+            </div>
+            <button class="button" onclick="hideConfigOverlay()">Cerrar</button>
+        </div>
+    </div>
+
+    <div class="password-overlay" id="password-overlay">
+        <div class="password-panel">
+            <h2 class="password-panel__title" id="password-panel-title"></h2>
+            <input type="password" id="password-input" class="password-panel__input" placeholder="Ingresa la contraseña">
+            <div class="password-panel__buttons">
+                <button class="button" id="password-submit">Aceptar</button>
+                <button class="button" id="password-cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <h2 id="caneca-question">¿En qué caneca crees que está?</h2>
+    <h3 class="caneca-question" id="caneca-question3">(Deposítala de tal modo que se vea en la cámara para realizar la predicción correctamente)</h3>
+    <div class="caneca-selection" id="caneca-selection">
+        <button class="caneca-button" data-caneca="canecaBlanca">
+            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_1.png" alt="Caneca Blanca" class="caneca-button__image">
+            <span class="caneca-button__text">Caneca Blanca</span>
+        </button>
+        <button class="caneca-button" data-caneca="canecaNegra">
+            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_3.png" alt="Caneca Negra" class="caneca-button__image">
+            <span class="caneca-button__text">Caneca Negra</span>
+        </button>
+        <button class="caneca-button" data-caneca="canecaVerde">
+            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_2.png" alt="Caneca Verde" class="caneca-button__image">
+            <span class="caneca-button__text">Caneca Verde</span>
+        </button>
+    </div>
+
+    <div id="loading-spinner">
+        <div class="spinner"></div>
+        <p id="loading-text">Analizando imagen con IA...</p>
+    </div>
+
+    <div class="prediction-result" id="prediction-result"></div>
+
+    <div id="panel-consejo-resultado">
+        <p id="texto-consejo-resultado"></p>
+    </div>
+
+    <div class="next-section" id="next-section">
+        <h3 class="next-section__title" id="next-section-title"></h3>
+        <p class="next-section__message" id="next-section-message"></p>
+        <div class="next-section__buttons">
+            <button class="button" id="play-again-button" onclick="resetUI()">Jugar de Nuevo</button>
+            <button class="button" id="learn-button" onclick="resetUI()">Volver al Menú</button>
+        </div>
+    </div>
+
+    <button class="button admin-mode-button" id="open-compartments-button">Abrir Compartimientos</button>
+
+    <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // DEBUG LOGGER
+    // ─────────────────────────────────────────────────────────────────────────
+    const debugPanel = document.getElementById('debug-panel');
+    function dbg(msg) {
+        console.log('[DBG]', msg);
+        const line = document.createElement('div');
+        line.textContent = '> ' + msg;
+        debugPanel.appendChild(line);
+        debugPanel.scrollTop = debugPanel.scrollHeight;
+    }
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+        }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DARK MODE
+    // ─────────────────────────────────────────────────────────────────────────
+    const darkBtn = document.getElementById('dark-mode-btn');
+    let isDark = localStorage.getItem('darkMode') === 'true';
+    function applyDarkMode(dark) {
+        document.body.classList.toggle('dark-theme', dark);
+        darkBtn.textContent = dark ? '☀️' : '🌙';
+        localStorage.setItem('darkMode', dark);
+    }
+    applyDarkMode(isDark);
+    darkBtn.addEventListener('click', () => { isDark = !isDark; applyDarkMode(isDark); });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TOAST SYSTEM
+    // ─────────────────────────────────────────────────────────────────────────
+    function showToast(msg, type = 'info', duration = 3000) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast${type === 'error' ? ' toast--error' : type === 'success' ? ' toast--success' : type === 'warning' ? ' toast--warning' : ''}`;
+        toast.textContent = msg;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('toast-out');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONFETTI
+    // ─────────────────────────────────────────────────────────────────────────
+    function launchConfetti() {
+        const container = document.getElementById('confetti-container');
+        const colors = ['#2ecc71','#3498db','#e74c3c','#f1c40f','#9b59b6','#1abc9c','#e67e22','#ff6b9d'];
+        for (let i = 0; i < 80; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + 'vw';
+            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.width = (8 + Math.random() * 8) + 'px';
+            piece.style.height = (10 + Math.random() * 10) + 'px';
+            const dur = 2 + Math.random() * 1.5;
+            piece.style.animationDuration = dur + 's';
+            piece.style.animationDelay = Math.random() * 0.8 + 's';
+            container.appendChild(piece);
+            setTimeout(() => piece.remove(), (dur + 1) * 1000);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // HAPTIC FEEDBACK
+    // ─────────────────────────────────────────────────────────────────────────
+    function haptic(pattern) {
+        if (navigator.vibrate) navigator.vibrate(pattern);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FADE HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
+    function fadeIn(el, displayType = 'block') {
+        el.style.display = displayType;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => el.classList.add('visible'));
+        });
+    }
+    function fadeOut(el, cb) {
+        el.classList.remove('visible');
+        setTimeout(() => { el.style.display = 'none'; if (cb) cb(); }, 400);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LASER SCANNER
+    // ─────────────────────────────────────────────────────────────────────────
+    function showLaser() { document.getElementById('laser-scanner').style.display = 'block'; }
+    function hideLaser() { document.getElementById('laser-scanner').style.display = 'none'; }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LOADING TEXT TIMERS
+    // ─────────────────────────────────────────────────────────────────────────
+    let loadingTimer4, loadingTimer8;
+    function startLoadingTimers() {
+        const txt = document.getElementById('loading-text');
+        if (txt) txt.textContent = 'Analizando imagen con IA...';
+        loadingTimer4 = setTimeout(() => { if (txt) txt.textContent = 'Despertando el servidor...'; }, 4000);
+        loadingTimer8 = setTimeout(() => { if (txt) txt.textContent = 'Analizando detalles...'; }, 8000);
+    }
+    function stopLoadingTimers() {
+        clearTimeout(loadingTimer4);
+        clearTimeout(loadingTimer8);
+        const txt = document.getElementById('loading-text');
+        if (txt) txt.textContent = 'Analizando imagen con IA...';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MAPEO SUBCATEGORÍA → CANECA
+    // ─────────────────────────────────────────────────────────────────────────
+    const SUBCATEGORIA_INFO = {
+        "Plastico_Limpio":          { caneca:"canecaBlanca", emoji:"♻️",  nombre:"Plástico limpio",              descripcion:"Es un plástico reciclable (PET, HDPE). Asegúrate de que esté limpio y seco.",           consejo:"Aplasta las botellas para ahorrar espacio en el transporte al centro de reciclaje." },
+        "Papel_Carton":             { caneca:"canecaBlanca", emoji:"📦",  nombre:"Papel o cartón",               descripcion:"Es papel o cartón reciclable. Mantenerlo seco es clave.",                               consejo:"El cartón mojado o grasoso NO se puede reciclar. Sepáralo limpio y seco." },
+        "Vidrio":                   { caneca:"canecaBlanca", emoji:"🍶",  nombre:"Vidrio",                       descripcion:"Es vidrio reciclable. Retira tapas y etiquetas cuando sea posible.",                    consejo:"El vidrio se puede reciclar infinitas veces sin perder calidad." },
+        "Metal_Latas":              { caneca:"canecaBlanca", emoji:"🥫",  nombre:"Metal / lata",                 descripcion:"Es metal o aluminio reciclable. Enjuágalo brevemente.",                                 consejo:"Reciclar aluminio consume 95% menos energía que producirlo desde cero." },
+        "Plastico_Contaminado":     { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Plástico contaminado",         descripcion:"Plástico con residuos de comida. Al estar contaminado, no puede reciclarse.",            consejo:"Intenta limpiar envases antes de descartarlos." },
+        "Icopor":                   { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Icopor / poliestireno",        descripcion:"El icopor no se recicla en la mayoría de ciudades. Va a la caneca negra.",               consejo:"Prefiere alternativas reutilizables al icopor." },
+        "Residuos_Sanitarios":      { caneca:"canecaNegra",  emoji:"🚽", nombre:"Residuo sanitario",            descripcion:"Los residuos sanitarios van siempre a la caneca negra.",                                 consejo:"Ciérralos bien antes de desecharlos." },
+        "Carton_Contaminado":       { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Cartón/papel contaminado",    descripcion:"El papel o cartón con grasa no puede reciclarse.",                                       consejo:"Una pequeña mancha de grasa arruina toda una carga de papel reciclado." },
+        "Otros_No_Reciclables":     { caneca:"canecaNegra",  emoji:"🗑️", nombre:"No reciclable",               descripcion:"Este residuo no puede reciclarse ni compostarse.",                                       consejo:"Reduce el consumo de productos con empaques no reciclables." },
+        "Frutas_Verduras":          { caneca:"canecaVerde",  emoji:"🍎", nombre:"Cáscaras de frutas/verduras",  descripcion:"Son restos orgánicos. Se pueden compostar o convertir en abono.",                       consejo:"En un compostero se convierten en abono en días." },
+        "Restos_Comida_Cocida":     { caneca:"canecaVerde",  emoji:"🍚", nombre:"Restos de comida cocida",      descripcion:"Van a la caneca verde como residuo orgánico aprovechable.",                              consejo:"Planear las comidas reduce el desperdicio hasta un 30%." },
+        "Huesos_Semillas":          { caneca:"canecaVerde",  emoji:"🦴", nombre:"Huesos o semillas",            descripcion:"Los huesos y semillas son orgánicos y van a la caneca verde.",                          consejo:"Algunas semillas como el aguacate se pueden reutilizar para sembrar." },
+        "Residuos_Jardin":          { caneca:"canecaVerde",  emoji:"🌿", nombre:"Residuos de jardín",           descripcion:"Hojas, pasto y ramas son residuos orgánicos. Compostan perfectamente.",                 consejo:"El pasto cortado mezclado con tierra produce abono rico." },
+        "Residuos_Biodegradables_Varios": { caneca:"canecaVerde", emoji:"☕", nombre:"Biodegradable (café, té…)", descripcion:"Estos residuos son biodegradables y ricos en nutrientes.",                           consejo:"Los posos de café son un fertilizante natural para plantas de interior." },
+        "Fondo":                          { caneca:"canecaFondo", emoji:"🖼️", nombre:"Fondo / sin objeto", descripcion:"No se detectó ningún objeto de interés en la imagen.", consejo:"Coloca el objeto frente a la cámara para obtener una predicción correcta." },
+    };
+
+    const CANECA_FALLBACK = {
+        "caneca_blanca":  "canecaBlanca",
+        "caneca_negra":   "canecaNegra",
+        "caneca_verde":   "canecaVerde",
+        "caneca_fondo":   "canecaFondo",
+        "fondo":          "canecaFondo",
+    };
+
+    const CONSEJOS_LATERALES = [
+        // ── Blanca / Reciclables ──
+        "Reciclar una lata de aluminio ahorra energía para 3 horas de TV.",
+        "El vidrio se puede reciclar infinitas veces sin perder calidad.",
+        "El papel mojado o grasoso NO se puede reciclar. ¡Mantenlo seco!",
+        "Aplasta las botellas PET antes de reciclarlas para ahorrar espacio.",
+        "Una tonelada de papel reciclado salva 17 árboles.",
+        "Lavar brevemente los envases antes de reciclarlos mejora su calidad.",
+        "El plástico PET (botellas de agua) es el más reciclado del mundo.",
+        "El aluminio reciclado conserva el 100% de sus propiedades originales.",
+        "Quitar las tapas plásticas de las botellas facilita el reciclaje.",
+        "El cartón ondulado es uno de los materiales más reciclados del mundo.",
+        "Separar el cartón en planos facilita su almacenamiento y transporte.",
+        "Los envases de yogur son reciclables si están limpios y secos.",
+        "Las cajas de pizza con grasa NO se reciclan; separa la parte limpia.",
+        "Reúsa los frascos de vidrio como contenedores de especias o semillas.",
+        "El papel reciclado usa un 60% menos de agua que el papel virgen.",
+        "El plástico #1 (PET) y #2 (HDPE) son los más aceptados en Colombia.",
+        "Los tubos de cartón de papel higiénico son reciclables.",
+        "Las botellas de aceite deben estar bien escurridas antes de reciclarlas.",
+        "Los aerosoles vacíos son reciclables como metal.",
+        "Las bolsas de leche plásticas son reciclables si están limpias.",
+        "Una botella PET puede convertirse en fibra para ropa deportiva.",
+        "Una botella de vidrio tarda un millón de años en degradarse.",
+        "Las latas de aluminio pueden volver a las tiendas en solo 60 días.",
+        "El vidrio de color y el transparente se reciclan juntos en muchos municipios.",
+        "El papel de periódico puede convertirse en nuevo papel en 7 días.",
+        "Reciclar cartón reduce la tala de bosques y el consumo de agua.",
+        "Dobla el cartón antes de depositarlo para ahorrar espacio en la caneca.",
+        "Los cuadernos viejos son reciclables si retiras las espirales metálicas.",
+        "Reutilizar un frasco de vidrio 10 veces equivale a reciclar 10 botellas nuevas.",
+        "El papel craft y las bolsas de papel son reciclables en la caneca blanca.",
+        "Las tapas metálicas de frascos también son reciclables en la caneca blanca.",
+        "Clasificar bien evita contaminar lotes enteros de material reciclable.",
+        // ── Verde / Orgánicos ──
+        "Los posos de café son un fertilizante natural para plantas de interior.",
+        "Compostar restos orgánicos reduce el metano en rellenos sanitarios.",
+        "Las semillas de aguacate y mango se pueden usar para sembrar en casa.",
+        "Las cáscaras de huevo son un excelente aporte de calcio al compost.",
+        "Los restos de fruta atraen moscas; cierra bien la caneca verde.",
+        "El pasto cortado mezclado con hojas produce un abono muy equilibrado.",
+        "Las plantas muertas de interior también van a la caneca verde.",
+        "Los filtros de té y café biodegradables van directo a la caneca verde.",
+        "Las servilletas usadas con comida son residuo orgánico, no reciclable.",
+        "Las cáscaras de cítricos demoran más en compostar; córtalas en trozos.",
+        "Los residuos orgánicos representan más del 50% de lo que tiramos.",
+        "Un compostero en casa puede transformar tus residuos en abono en 3 meses.",
+        "Los restos de poda de árboles se pueden convertir en chips para jardín.",
+        "Las cáscaras de plátano son ricas en potasio: excelente abono para plantas.",
+        "El vinagre de frutas puede hacerse con cáscaras en lugar de tirarlas.",
+        "Las pieles de cebolla sirven para hacer caldos antes de compostar.",
+        "Los posos de mate o aguapanela también son compostables.",
+        "Las mondas de papa y zanahoria son excelentes para el compost.",
+        "Los huesos de pollo y cerdo son orgánicos y van a la caneca verde.",
+        "El compostaje comunal es una opción si no tienes espacio en casa.",
+        "El biogás producido por residuos orgánicos puede generar electricidad.",
+        "Planear las comidas reduce el desperdicio de alimentos hasta un 30%.",
+        "El pelo cortado y las uñas son biodegradables y van al orgánico.",
+        "Las algas marinas son un excelente activador del proceso de compostaje.",
+        "La fermentación bokashi de residuos reduce olores y acelera el compostaje.",
+        "Mezclar residuos secos y húmedos en el compost da mejores resultados.",
+        // ── Negra / No aprovechables ──
+        "El icopor tarda más de 500 años en degradarse en la naturaleza.",
+        "Prefiere productos con menos empaque: menos residuos desde el origen.",
+        "Los pañales desechables van a la caneca negra bien cerrados.",
+        "Las colillas de cigarro son tóxicas y van a la caneca negra.",
+        "Los medicamentos vencidos NO van a la caneca normal; búscalos en puntos especiales.",
+        "Las pilas y baterías son residuos peligrosos; entrégalos en puntos autorizados.",
+        "Las bombillas fluorescentes contienen mercurio; no van a la caneca común.",
+        "Los residuos de mascotas (excrementos) van siempre a la caneca negra.",
+        "Las esponjas de cocina usadas van a la caneca negra.",
+        "Los papeles con solventes o pintura van a la caneca negra.",
+        "Los chicles masticados van a la caneca negra, no al suelo.",
+        "Los vasos desechables con restos de bebida van a la caneca negra.",
+        "El plástico #6 (poliestireno/icopor) casi no se recicla localmente.",
+        "Los envases de plástico oscuro suelen no ser reciclables.",
+        "Las baterías recargables reducen hasta 300 veces los residuos peligrosos.",
+        "Los cartuchos de tinta tienen programas de devolución en tiendas.",
+        "La caneca negra es para residuos que ya no tienen más vida útil.",
+        "El aceite de cocina usado no va por el desagüe; llévalo a puntos especiales.",
+        // ── Generales / Cultura ──
+        "Reducir, reutilizar y reciclar: en ese orden de importancia.",
+        "Separar residuos en casa reduce hasta un 70% de lo que va al relleno.",
+        "Comprar a granel reduce el empaque y los residuos generados.",
+        "Tener tres canecas en casa es el primer paso para reciclar bien.",
+        "Enseña a los niños a clasificar: el hábito formado temprano dura toda la vida.",
+        "Lleva tus materiales reciclables a puntos de acopio para mayor impacto.",
+        "Revisa el símbolo de reciclaje en los envases antes de clasificarlos.",
+        "El número dentro del símbolo de reciclaje indica el tipo de plástico.",
+        "El plástico flexible (bolsas) se recicla en puntos específicos, no en la caneca.",
+        "Preferir envases retornables es mejor que reciclar: cierra el ciclo.",
+        "El reciclaje informal recupera más del 70% de los materiales en Bogotá.",
+        "Un kg de plástico reciclado puede reemplazar 0,5 kg de petróleo.",
+        "Cada tonelada de vidrio reciclado evita la extracción de 1,2 ton de arena.",
+        "Reciclar papel reduce la contaminación del agua en un 35%.",
+        "Usar ambos lados del papel antes de reciclarlo es un paso extra que vale.",
+        "Reciclar genera empleos: en Colombia hay miles de recicladores de oficio.",
+        "Apoyar a los recicladores de base mejora la economía circular local.",
+        "Usar bolsas reutilizables evita 500 bolsas plásticas por persona al año.",
+        "La reducción de residuos en la fuente es más efectiva que el reciclaje.",
+        "Los envases multicapa (tetrapak) tienen centros de acopio especializados.",
+        "Cuando tengas duda sobre dónde va algo, consulta a tu gestor ambiental local.",
+        "El bioplástico NO siempre es compostable; revisa el etiquetado.",
+        "Separar los residuos en origen evita contaminar cargas enteras de reciclaje.",
+        "Cada clasificación correcta contribuye a la economía circular del país.",
+        "Compactar los residuos antes de llevarlos al punto de acopio ahorra viajes.",
+        // ── Cámara / IA ──
+        "Coloca el objeto frente a la cámara para que la IA lo clasifique bien.",
+        "Cuanto mejor iluminada esté la imagen, más precisa será la predicción.",
+        "Un fondo neutro contrasta mejor con el residuo y mejora la clasificación.",
+        "Cada residuo bien clasificado es un recurso que regresa al ciclo productivo.",
+        "Gracias por usar esta herramienta: ¡estás ayudando al planeta con cada uso!",
+    ];
+
+    // Consejos específicos por caneca — se muestran al seleccionar una caneca
+    const CONSEJOS_POR_CANECA = {
+        canecaBlanca: [
+            "♻️ Las botellas PET son el plástico más reciclado del mundo. ¡Aplástalas antes de tirarlas!",
+            "🥫 El aluminio reciclado ahorra un 95% de energía frente a producirlo desde cero.",
+            "🍶 El vidrio se recicla infinitas veces sin perder ninguna de sus propiedades.",
+            "📦 Mantén el papel seco: el papel mojado o grasoso no puede reciclarse.",
+            "🚿 Enjuaga brevemente los envases antes de depositarlos en la caneca blanca.",
+            "⚡ Las latas de aluminio pueden estar de vuelta en tiendas en solo 60 días.",
+            "📦 El cartón limpio y seco es uno de los materiales más valiosos para reciclar.",
+            "🔩 Quitar las tapas de las botellas facilita el proceso de reciclaje del plástico.",
+            "🔢 El plástico #1 (PET) y #2 (HDPE) son los más aceptados en los centros de reciclaje.",
+            "📐 Dobla el cartón antes de depositarlo para ahorrar espacio en la caneca blanca.",
+        ],
+        canecaNegra: [
+            "⚠️ El icopor tarda más de 500 años en degradarse: evita usarlo cuando sea posible.",
+            "🚼 Los pañales y residuos sanitarios deben ir bien cerrados en la caneca negra.",
+            "🚬 Las colillas de cigarro son tóxicas; siempre van a la caneca negra.",
+            "🔋 Las pilas y baterías son peligrosas; llévalas a puntos especiales de recolección.",
+            "🍟 Los plásticos contaminados con comida no pueden reciclarse.",
+            "🚫 El poliestireno (icopor) casi no se recicla localmente en Colombia.",
+            "👃 Cierra bien las bolsas de residuos no aprovechables para evitar malos olores.",
+            "🐾 Los residuos de mascotas siempre van en bolsa cerrada a la caneca negra.",
+            "🧽 Las esponjas de cocina usadas van a la caneca negra, no al reciclaje.",
+            "💡 Reduce el consumo de productos con empaques no reciclables para generar menos basura.",
+        ],
+        canecaVerde: [
+            "🍎 Los restos de frutas y verduras se convierten en abono en pocas semanas.",
+            "🌱 Un compostero en casa produce abono gratuito y de alta calidad para tus plantas.",
+            "🍌 Las cáscaras de plátano son ricas en potasio: un fertilizante natural perfecto.",
+            "☕ Los posos de café mejoran el drenaje del suelo y alejan las plagas del jardín.",
+            "🌿 El pasto cortado mezclado con hojas secas produce un abono muy equilibrado.",
+            "🥚 Las cáscaras de huevo aportan calcio al compost y a la tierra del jardín.",
+            "✂️ Corta los restos orgánicos en trozos pequeños para que composten más rápido.",
+            "🍵 Los filtros de té biodegradables pueden ir directamente a la caneca verde.",
+            "📅 Planear las comidas reduce el desperdicio de alimentos hasta un 30%.",
+            "🌾 Los residuos de jardín como hojas y ramas también van a la caneca verde.",
+        ],
+        canecaFondo: [
+            "📷 Asegúrate de colocar el objeto frente a la cámara para una predicción precisa.",
+            "🖼️ Un fondo despejado mejora la capacidad de la IA para identificar el objeto.",
+            "💡 Ilumina bien el objeto antes de fotografiarlo para obtener mejores resultados.",
+            "🛍️ Si el objeto está en una bolsa, sácalo para que la cámara lo vea claramente.",
+            "🎯 Centra el residuo en la imagen para que el modelo lo clasifique correctamente.",
+            "🔍 Cuanto más cerca esté el objeto a la cámara, más precisa será la clasificación.",
+            "🌑 Evita sombras fuertes sobre el objeto para obtener mejores resultados.",
+            "⬜ Un fondo blanco o neutro contrasta mejor con el residuo que vas a clasificar.",
+            "✅ La clasificación correcta desde el origen es la base de un buen reciclaje.",
+            "🔄 Inténtalo de nuevo: coloca el residuo bien visible frente a la cámara.",
+        ],
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONFIG
+    // ─────────────────────────────────────────────────────────────────────────
+    var baseHost = document.location.origin;
+    let ledPinGlobal = "";
+
+    if (baseHost.startsWith('file://') || baseHost.includes('localhost')) {
+        const storedIP = localStorage.getItem('esp32_ip');
+        if (storedIP) {
+            baseHost = `http://${storedIP}`;
+        } else {
+            const ip = prompt("Ingrese la IP del ESP32 (por ejemplo 192.168.0.17):");
+            if (ip) {
+                baseHost = `http://${ip}`;
+                localStorage.setItem('esp32_ip', ip);
+            } else {
+                showToast("No se configuró IP del ESP32. No se podrá capturar imagen.", "warning", 5000);
+            }
+        }
+    }
+
+    var streamUrl = baseHost + ':81';
+
+    const API_URL = "http://192.168.0.5:5000/predict"
+
+    dbg(`baseHost: ${baseHost}`);
+    dbg(`API_URL: ${API_URL}`);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DOM refs
+    // ─────────────────────────────────────────────────────────────────────────
+    var configSection, cameraStream, cameraContainer, ledGroup, agc, agcGain,
+        gainCeiling, aec, exposure, awb, wb, framesizeSelect,
+        canecaQuestion3, canecaQuestion, canecaSelection, predictionResultDiv,
+        nextSection, nextSectionTitle, nextSectionMessage,
+        configButton, configOverlay, adminSwitch,
+        passwordOverlay, passwordPanelTitle, passwordInput,
+        passwordSubmitButton, passwordCancelButton,
+        openCompartmentsBtn, modelErrorDiv, loadingSpinner,
+        textoConsejoLateral, panelConsejoResultado, textoConsejoResultado;
+
+    const PASSWORD_KEY = 'adminPassword';
+    let adminModeEnabled = false;
+
+    let consejoIndex = Math.floor(Math.random() * CONSEJOS_LATERALES.length);
+    function rotarConsejoLateral() {
+        consejoIndex = (consejoIndex + 1) % CONSEJOS_LATERALES.length;
+        if (textoConsejoLateral) textoConsejoLateral.textContent = CONSEJOS_LATERALES[consejoIndex];
+    }
+
+    function mostrarConsejoResultado(subcategoria, caneca) {
+        const info = SUBCATEGORIA_INFO[subcategoria];
+        panelConsejoResultado.className = '';
+        if (caneca === 'canecaBlanca') panelConsejoResultado.classList.add('blanca');
+        else if (caneca === 'canecaNegra') panelConsejoResultado.classList.add('negra');
+        else if (caneca === 'canecaVerde')  panelConsejoResultado.classList.add('verde');
+        else if (caneca === 'canecaFondo')  panelConsejoResultado.classList.add('fondo');
+        textoConsejoResultado.textContent = info
+            ? `${info.emoji} ${info.consejo}`
+            : "Recuerda siempre clasificar bien tus residuos.";
+        fadeIn(panelConsejoResultado, 'block');
+    }
+
+    function actualizarConsejoPorCaneca(caneca) {
+        const lista = CONSEJOS_POR_CANECA[caneca];
+        if (!lista) return;
+        const idx = Math.floor(Math.random() * lista.length);
+        if (textoConsejoLateral) textoConsejoLateral.textContent = lista[idx];
+        const panel = document.getElementById('panel-consejo-lateral');
+        if (panel) {
+            panel.classList.remove('caneca-blanca', 'caneca-negra', 'caneca-verde', 'caneca-fondo');
+            if (caneca === 'canecaBlanca')      panel.classList.add('caneca-blanca');
+            else if (caneca === 'canecaNegra')  panel.classList.add('caneca-negra');
+            else if (caneca === 'canecaVerde')  panel.classList.add('caneca-verde');
+            else if (caneca === 'canecaFondo')  panel.classList.add('caneca-fondo');
+        }
+    }
+
+    function resolverCanecaDesdeClase(className) {
+        const info = SUBCATEGORIA_INFO[className];
+        if (info) return { caneca: info.caneca, subcategoria: className };
+        const normalizado = className.toLowerCase().replace(/\s/g, '_');
+        if (CANECA_FALLBACK[normalizado]) return { caneca: CANECA_FALLBACK[normalizado], subcategoria: null };
+        return null;
+    }
+
+    function infoCanecaParaMensaje(caneca, subcategoria) {
+        if (subcategoria && SUBCATEGORIA_INFO[subcategoria]) {
+            const info = SUBCATEGORIA_INFO[subcategoria];
+            const nombreCaneca = caneca === 'canecaBlanca' ? 'Blanca' : caneca === 'canecaNegra' ? 'Negra' : 'Verde';
+            return { nombre: `${info.emoji} Caneca ${nombreCaneca} — ${info.nombre}`, descripcion: info.descripcion };
+        }
+        if (caneca === 'canecaBlanca') return { nombre: 'Caneca Blanca', descripcion: 'para materiales reciclables.' };
+        if (caneca === 'canecaNegra')  return { nombre: 'Caneca Negra',  descripcion: 'para residuos no aprovechables.' };
+        if (caneca === 'canecaVerde')  return { nombre: 'Caneca Verde',  descripcion: 'para residuos orgánicos aprovechables.' };
+        return { nombre: 'desconocida', descripcion: '' };
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PASSWORD / ADMIN
+    // ─────────────────────────────────────────────────────────────────────────
+    function getStoredPassword()  { return localStorage.getItem(PASSWORD_KEY); }
+    function setStoredPassword(p) { localStorage.setItem(PASSWORD_KEY, p); }
+
+    function showPasswordOverlay(isSetup) {
+        passwordInput.value = '';
+        passwordPanelTitle.textContent = isSetup ? 'Establece tu contraseña de administrador' : 'Ingresa la contraseña de administrador';
+        passwordInput.placeholder = isSetup ? 'Nueva contraseña' : 'Contraseña';
+        passwordOverlay.style.display = 'flex';
+        requestAnimationFrame(() => requestAnimationFrame(() => passwordOverlay.classList.add('visible')));
+        passwordInput.focus();
+    }
+    function hidePasswordOverlay() {
+        passwordOverlay.classList.remove('visible');
+        setTimeout(() => { passwordOverlay.style.display = 'none'; }, 300);
+    }
+
+    function handleAdminSwitchChange() {
+        if (adminSwitch.checked) showPasswordOverlay(!getStoredPassword());
+        else { adminModeEnabled = false; updateUIAfterAdminModeChange(); }
+    }
+
+    function handlePasswordSubmit() {
+        const entered = passwordInput.value;
+        const stored  = getStoredPassword();
+        if (stored) {
+            if (entered === stored) { adminModeEnabled = true; hidePasswordOverlay(); hideConfigOverlay(); updateUIAfterAdminModeChange(); }
+            else {
+                showToast('Contraseña incorrecta.', 'error');
+                haptic([50, 50, 50]);
+                adminSwitch.checked = false; hidePasswordOverlay(); hideConfigOverlay(); adminModeEnabled = false; updateUIAfterAdminModeChange();
+            }
+        } else {
+            if (entered) { setStoredPassword(entered); adminModeEnabled = true; hidePasswordOverlay(); hideConfigOverlay(); updateUIAfterAdminModeChange(); }
+            else showToast('La contraseña no puede estar vacía.', 'warning');
+        }
+    }
+
+    function handlePasswordCancel() {
+        adminSwitch.checked = false; hidePasswordOverlay(); hideConfigOverlay();
+        adminModeEnabled = false; updateUIAfterAdminModeChange();
+    }
+
+    function updateUIAfterAdminModeChange() {
+        openCompartmentsBtn.style.display = adminModeEnabled ? 'block' : 'none';
+        if (!adminModeEnabled) configSection.style.display = 'none';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // UI HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
+    function showCanecaSelection() {
+        canecaQuestion3.style.display = 'block';
+        canecaQuestion.style.display  = 'block';
+        fadeIn(canecaSelection, 'flex');
+        fadeOut(predictionResultDiv);
+        fadeOut(nextSection);
+        fadeOut(loadingSpinner);
+    }
+    function hideCanecaSelection() {
+        canecaQuestion.style.display  = 'none';
+        canecaQuestion3.style.display = 'none';
+        fadeOut(canecaSelection);
+    }
+    function showConfigOverlay() {
+        configOverlay.style.display = 'flex';
+        requestAnimationFrame(() => requestAnimationFrame(() => configOverlay.classList.add('visible')));
+    }
+    function hideConfigOverlay() {
+        configOverlay.classList.remove('visible');
+        setTimeout(() => { configOverlay.style.display = 'none'; }, 300);
+    }
+
+    function resetUI() {
+        fadeOut(panelConsejoResultado);
+        fadeOut(predictionResultDiv);
+        fadeOut(nextSection);
+        fadeOut(loadingSpinner);
+        hideLaser();
+        stopLoadingTimers();
+        showCanecaSelection();
+        startStream();
+        if (ledPinGlobal !== "") {
+            fetch(`${baseHost}/led_off?pin=${ledPinGlobal}`)
+                .then(() => { ledPinGlobal = ""; })
+                .catch(err => dbg("Error apagando LED: " + err));
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PREDICCIÓN
+    // ─────────────────────────────────────────────────────────────────────────
+    async function predictAndEvaluate(selectedCaneca) {
+        fadeIn(loadingSpinner, 'flex');
+        showLaser();
+        startLoadingTimers();
+
+        try {
+            dbg("Capturando imagen desde ESP32...");
+            const captureResponse = await fetch(`${baseHost}/capture?_cb=${Date.now()}`);
+            if (!captureResponse.ok) throw new Error(`ESP32 capture error: ${captureResponse.status}`);
+            const blob = await captureResponse.blob();
+            dbg(`Imagen capturada: ${blob.size} bytes`);
+
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            await new Promise(r => reader.onloadend = r);
+            const base64Image = reader.result.split(',')[1];
+            dbg(`Base64 listo (${base64Image.length} chars), enviando a API...`);
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imagen: base64Image }),
+            });
+
+            dbg(`Respuesta API: status ${response.status}`);
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(`API error ${response.status}: ${JSON.stringify(result)}`);
+
+            dbg(`Respuesta completa: ${JSON.stringify(result)}`);
+            dbg(`Keys en respuesta: ${Object.keys(result).join(', ')}`);
+
+            // --- INICIO DE LA CORRECCIÓN ---
+            // Si la API devuelve 'index' y 'probabilidades', lo mapeamos al formato que espera el frontend
+            if (result.index !== undefined && Array.isArray(result.probabilidades)) {
+                const categorias = ["Caneca_blanca", "Caneca_negra", "Caneca_verde"];
+                
+                result.prediccion = [{
+                    clase: categorias[result.index],
+                    confianza: result.probabilidades[result.index]
+                }];
+            }
+            // --- FIN DE LA CORRECCIÓN ---
+
+            // Extraer array de probabilidades para usar en cálculos de confianza y porcentajes
+            const probs = result.probabilidades || [0, 0, 0, 0];
+
+            dbg(`Prediccion: ${JSON.stringify(result.prediccion)}`);
+
+            stopLoadingTimers();
+            hideLaser();
+            fadeOut(loadingSpinner);
+            haptic([200]);
+
+            if (!result.prediccion || !Array.isArray(result.prediccion) || result.prediccion.length === 0) {
+                predictionResultDiv.innerHTML = '<span class="prediction-result__message--incorrect">No se detectó ningún objeto para clasificar.</span>';
+                fadeIn(predictionResultDiv, 'block');
+                setTimeout(resetUI, 3000);
+                return;
+            }
+
+            const confianzaPorCaneca = { canecaBlanca: 0, canecaNegra: 0, canecaVerde: 0 };
+            let mejorSubcat = null;
+            let mejorConfianza = -1;
+
+            result.prediccion.forEach(p => {
+                const confianza  = p.confianza || p.confidence || 0;
+                const className  = (p.clase || p.class || '').trim();
+                const resolucion = resolverCanecaDesdeClase(className);
+                if (resolucion) {
+                    confianzaPorCaneca[resolucion.caneca] += confianza;
+                    if (confianza > mejorConfianza) {
+                        mejorConfianza = confianza;
+                        mejorSubcat    = resolucion.subcategoria || className;
+                    }
+                }
+                dbg(`Clase: ${className} → ${resolucion ? resolucion.caneca : 'desconocida'} (${(confianza*100).toFixed(1)}%)`);
+            });
+
+            const totalConfianza = (probs[0] || 0) + (probs[1] || 0) + (probs[2] || 0) + (probs[3] || 0);
+            if (totalConfianza === 0) {
+                predictionResultDiv.innerHTML = '<span class="prediction-result__message--incorrect">No se ha colocado un objeto para hacer la predicción.</span>';
+                fadeIn(predictionResultDiv, 'block');
+                setTimeout(resetUI, 3000);
+                return;
+            }
+
+            let predictedCaneca = Object.entries(confianzaPorCaneca).sort(([,a],[,b]) => b-a)[0][0];
+
+            const pct = {
+                canecaBlanca: Math.round(((probs[0]||0) / totalConfianza) * 100),
+                canecaNegra:  Math.round(((probs[1]||0) / totalConfianza) * 100),
+                canecaVerde:  Math.round(((probs[2]||0) / totalConfianza) * 100),
+                canecaFondo:  Math.round(((probs[3]||0) / totalConfianza) * 100),
+            };
+
+            ledPinGlobal = predictedCaneca === 'canecaBlanca' ? "45" : predictedCaneca === 'canecaNegra' ? "47" : predictedCaneca === 'canecaVerde' ? "48" : "";
+            if (predictedCaneca === 'canecaFondo') {
+                showToast('⚠️ No se detectó un objeto claro. Coloca el residuo frente a la cámara.', 'warning', 4000);
+            }
+            if (ledPinGlobal) fetch(`${baseHost}/led_on?pin=${ledPinGlobal}`).catch(err => dbg("LED err: " + err));
+
+            mostrarConsejoResultado(mejorSubcat, predictedCaneca);
+
+            const { nombre, descripcion } = infoCanecaParaMensaje(predictedCaneca, mejorSubcat);
+
+            if (selectedCaneca === predictedCaneca) {
+                launchConfetti();
+                showToast('🎉 ¡Correcto! ¡Clasificaste bien el residuo!', 'success');
+                predictionResultDiv.innerHTML = `
+                    <span class="prediction-result__icon--correct">✔</span><br>
+                    <span class="prediction-result__message--correct">¡Correcto!</span>
+                    <p class="prediction-result__feedback">
+                        <strong>${nombre}</strong><br>
+                        ${descripcion}<br><br>
+                        🎉 ¡Bien hecho! Clasificaste correctamente el residuo. Gracias por ayudar al planeta.
+                    </p>
+                                        <div style="margin:10px auto;max-width:300px;text-align:left;font-size:0.42em;color:var(--text-muted);">
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Blanca</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaBlanca}%,100%);background:#2980b9;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaBlanca}%</span></div>
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Negra</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaNegra}%,100%);background:#2c3e50;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaNegra}%</span></div>
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Verde</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaVerde}%,100%);background:#27ae60;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaVerde}%</span></div>
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Fondo</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaFondo}%,100%);background:#8e44ad;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaFondo}%</span></div>
+                    </div><br><br>
+                    <button class="button" onclick="resetUI()">Volver al menú</button>
+                `;
+            } else {
+                showToast('❌ Incorrecto. ¡Revisa el consejo para aprender!', 'error');
+                predictionResultDiv.innerHTML = `
+                    <span class="prediction-result__icon--incorrect">✖</span><br>
+                    <span class="prediction-result__message--incorrect">¡Incorrecto!</span>
+                    <p class="prediction-result__feedback">
+                        Este residuo pertenece a la <strong>${nombre}</strong>.<br>
+                        ${descripcion}
+                    </p>
+                                        <div style="margin:10px auto;max-width:300px;text-align:left;font-size:0.42em;color:var(--text-muted);">
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Blanca</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaBlanca}%,100%);background:#2980b9;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaBlanca}%</span></div>
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Negra</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaNegra}%,100%);background:#2c3e50;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaNegra}%</span></div>
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Verde</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaVerde}%,100%);background:#27ae60;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaVerde}%</span></div>
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Fondo</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaFondo}%,100%);background:#8e44ad;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaFondo}%</span></div>
+                    </div><br><br>
+                    <button class="button" onclick="resetUI()">Volver al menú</button>
+                `;
+            }
+            fadeIn(predictionResultDiv, 'block');
+            hideCanecaSelection();
+
+        } catch (error) {
+            stopLoadingTimers();
+            hideLaser();
+            fadeOut(loadingSpinner);
+            haptic([50, 50, 50]);
+            dbg(`ERROR: ${error.message}`);
+            console.error("Error durante predicción:", error);
+            modelErrorDiv.classList.remove('hidden');
+            showToast('⚠️ Error al realizar la predicción. Verifica el servidor.', 'error', 5000);
+            predictionResultDiv.innerHTML = `
+                <span class="prediction-result__message--incorrect">
+                    ⚠️ Error al realizar la predicción.<br>
+                    <small style="font-size:0.6em;color:#888;">${error.message}</small><br><br>
+                    Verifica que el servidor de Render esté activo.
+                </span>
+            `;
+            fadeIn(predictionResultDiv, 'block');
+            setTimeout(() => { modelErrorDiv.classList.add('hidden'); resetUI(); }, 5000);
+        }
+    }
+
+    function handleCanecaSelection(selectedCaneca) {
+        actualizarConsejoPorCaneca(selectedCaneca);
+        hideCanecaSelection();
+        fadeOut(predictionResultDiv);
+        fadeOut(nextSection);
+        fadeIn(loadingSpinner, 'flex');
+
+        const testImg = new Image();
+        testImg.crossOrigin = 'anonymous';
+        testImg.src = `${baseHost}/capture?_cb=${Date.now()}`;
+        testImg.onload = () => {
+            cameraStream.src = testImg.src;
+            predictAndEvaluate(selectedCaneca);
+        };
+        testImg.onerror = () => {
+            predictAndEvaluate(selectedCaneca);
+        };
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ESP32 CAM HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
+    function fetchUrl(url, cb) {
+        fetch(url)
+            .then(r => r.status !== 200 ? cb(r.status, r.statusText) : r.text().then(d => cb(200, d)))
+            .catch(err => cb(-1, err));
+    }
+    function setReg(reg, offset, mask, value, cb) {
+        value = (value & mask) << offset; mask = mask << offset;
+        fetchUrl(`${baseHost}/reg?reg=${reg}&mask=${mask}&val=${value}`, cb);
+    }
+    function getReg(reg, offset, mask, cb) {
+        mask = mask << offset;
+        fetchUrl(`${baseHost}/greg?reg=${reg}&mask=${mask}`, (code, txt) => {
+            if (code === 200) { let v = (parseInt(txt) & mask) >> offset; txt = '' + v; }
+            cb(code, txt);
+        });
+    }
+    function setXclk(xclk, cb) { fetchUrl(`${baseHost}/xclk?xclk=${xclk}`, cb); }
+
+    const hide    = el => el.classList.add('hidden');
+    const show    = el => el.classList.remove('hidden');
+    const disable = el => { el.classList.add('button--disabled'); el.disabled = true; };
+    const enable  = el => { el.classList.remove('button--disabled'); el.disabled = false; };
+
+    const updateValue = (el, value, updateRemote = true) => {
+        let initial;
+        if (el.type === 'checkbox') { initial = el.checked; value = !!value; el.checked = value; }
+        else { initial = el.value; el.value = value; }
+        if (updateRemote && initial !== value) updateConfig(el);
+        else if (!updateRemote) {
+            if (el.id === 'aec')           { value ? hide(exposure)    : show(exposure); }
+            else if (el.id === 'agc')      { value ? (show(gainCeiling), hide(agcGain)) : (hide(gainCeiling), show(agcGain)); }
+            else if (el.id === 'awb_gain') { value ? show(wb)          : hide(wb); }
+            else if (el.id === 'led_intensity') { value > -1 ? show(ledGroup) : hide(ledGroup); }
+        }
+    };
+
+    function updateConfig(el) {
+        let value;
+        switch (el.type) {
+            case 'checkbox':   value = el.checked ? 1 : 0; break;
+            case 'range': case 'select-one': value = el.value; break;
+            case 'button': case 'submit':    value = '1'; break;
+            default: return;
+        }
+        fetch(`${baseHost}/control?var=${el.id}&val=${value}`)
+            .catch(err => dbg('Error updating config: ' + err));
+    }
+
+    const updateRegValue = (el, value) => {
+        const offset = el.attributes.offset ? parseInt(el.attributes.offset.nodeValue) : 0;
+        const mask   = (el.attributes.mask ? parseInt(el.attributes.mask.nodeValue) : 255) << offset;
+        value = (value & mask) >> offset;
+        if (el.type === 'checkbox') el.checked = !!value;
+        else el.value = value;
+    };
+
+    const startStream = () => { cameraStream.src = `${streamUrl}/stream`; };
+
+    function adjustCameraContainerSize(v) {
+        const map = { '13':[640,480],'12':[640,512],'11':[640,360],'10':[640,480],'9':[640,480],
+                      '8':[640,480],'7':[480,320],'6':[400,296],'5':[320,240],'4':[240,240],
+                      '3':[240,176],'2':[176,144],'1':[160,120],'0':[96,96] };
+        const [w, h] = map[v] || [640, 480];
+        cameraContainer.style.width  = `${w}px`;
+        cameraContainer.style.height = `${h}px`;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DOMContentLoaded
+    // ─────────────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+        configSection        = document.getElementById('configSection');
+        cameraStream         = document.getElementById('camera-stream');
+        cameraContainer      = document.getElementById('camera-container');
+        ledGroup             = document.getElementById('led-group');
+        agc                  = document.getElementById('agc');
+        agcGain              = document.getElementById('agc_gain-group');
+        gainCeiling          = document.getElementById('gainceiling-group');
+        aec                  = document.getElementById('aec');
+        exposure             = document.getElementById('aec_value-group');
+        awb                  = document.getElementById('awb_gain');
+        wb                   = document.getElementById('wb_mode-group');
+        framesizeSelect      = document.getElementById('framesize');
+        canecaQuestion3      = document.getElementById('caneca-question3');
+        canecaQuestion       = document.getElementById('caneca-question');
+        canecaSelection      = document.getElementById('caneca-selection');
+        predictionResultDiv  = document.getElementById('prediction-result');
+        nextSection          = document.getElementById('next-section');
+        nextSectionTitle     = document.getElementById('next-section-title');
+        nextSectionMessage   = document.getElementById('next-section-message');
+        configButton         = document.getElementById('config-button');
+        configOverlay        = document.getElementById('config-overlay');
+        adminSwitch          = document.getElementById('admin-switch');
+        passwordOverlay      = document.getElementById('password-overlay');
+        passwordPanelTitle   = document.getElementById('password-panel-title');
+        passwordInput        = document.getElementById('password-input');
+        passwordSubmitButton = document.getElementById('password-submit');
+        passwordCancelButton = document.getElementById('password-cancel');
+        openCompartmentsBtn  = document.getElementById('open-compartments-button');
+        modelErrorDiv        = document.getElementById('model-error');
+        loadingSpinner       = document.getElementById('loading-spinner');
+        textoConsejoLateral  = document.getElementById('texto-consejo-lateral');
+        panelConsejoResultado = document.getElementById('panel-consejo-resultado');
+        textoConsejoResultado = document.getElementById('texto-consejo-resultado');
+
+        textoConsejoLateral.textContent = CONSEJOS_LATERALES[consejoIndex];
+        setInterval(rotarConsejoLateral, 7000);
+
+        adjustCameraContainerSize(framesizeSelect.value);
+
+        document.querySelectorAll('.caneca-button').forEach(btn => {
+            btn.addEventListener('click', () => handleCanecaSelection(btn.dataset.caneca));
+        });
+
+        configButton.addEventListener('click', showConfigOverlay);
+        adminSwitch.addEventListener('change', handleAdminSwitchChange);
+        passwordSubmitButton.addEventListener('click', handlePasswordSubmit);
+        passwordCancelButton.addEventListener('click', handlePasswordCancel);
+        passwordInput.addEventListener('keypress', e => { if (e.key === 'Enter') handlePasswordSubmit(); });
+
+        document.getElementById('set-reg').onclick = () => {
+            setReg(parseInt(document.getElementById('reg-addr').value), 0,
+                   parseInt(document.getElementById('reg-mask').value),
+                   parseInt(document.getElementById('reg-value').value),
+                   (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
+        };
+        document.getElementById('get-reg').onclick = () => {
+            const span = document.getElementById('get-reg-value');
+            getReg(parseInt(document.getElementById('get-reg-addr').value), 0,
+                   parseInt(document.getElementById('get-reg-mask').value),
+                   (code, txt) => { span.innerHTML = code !== 200 ? `Error[${code}]: ${txt}` : `0x${parseInt(txt).toString(16)} (${txt})`; });
+        };
+        document.getElementById('set-xclk').onclick = () => {
+            setXclk(parseInt(document.getElementById('xclk').value),
+                    (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
+        };
+        document.getElementById('set-resolution').onclick = () => {
+            const sx = parseInt(document.getElementById('start-x').value);
+            const ox = parseInt(document.getElementById('offset-x').value);
+            const oy = parseInt(document.getElementById('offset-y').value);
+            const tx = parseInt(document.getElementById('total-x').value);
+            const ty = parseInt(document.getElementById('total-y').value);
+            const outx = parseInt(document.getElementById('output-x').value);
+            const outy = parseInt(document.getElementById('output-y').value);
+            fetchUrl(`${baseHost}/resolution?sx=${sx}&sy=0&ex=0&ey=0&offx=${ox}&offy=${oy}&tx=${tx}&ty=${ty}&ox=${outx}&oy=${outy}&scale=0&binning=0`,
+                     (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
+        };
+
+        document.querySelectorAll('.default-action').forEach(el => el.addEventListener('change', () => updateConfig(el)));
+        document.querySelectorAll('.reg-action').forEach(el => {
+            if (el.type === 'text') {
+                el.onkeyup = e => {
+                    if (e.keyCode === 13) {
+                        setReg(parseInt(el.attributes.reg?.nodeValue || 0), parseInt(el.attributes.offset?.nodeValue || 0),
+                               parseInt(el.attributes.mask?.nodeValue || 255), parseInt(el.value),
+                               (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
+                    }
+                };
+            } else {
+                el.onchange = () => {
+                    const mask = parseInt(el.attributes.mask?.nodeValue || 255);
+                    setReg(parseInt(el.attributes.reg?.nodeValue || 0), parseInt(el.attributes.offset?.nodeValue || 0),
+                           mask, el.type === 'checkbox' ? (el.checked ? mask : 0) : parseInt(el.value),
+                           (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
+                };
+            }
+        });
+
+        fetch(`${baseHost}/status`)
+            .then(r => r.json())
+            .then(state => {
+                document.querySelectorAll('.default-action').forEach(el => updateValue(el, state[el.id], false));
+                document.querySelectorAll('.reg-action').forEach(el => {
+                    const reg = parseInt(el.attributes.reg?.nodeValue || 0);
+                    if (reg) updateRegValue(el, state['0x' + reg.toString(16)], false);
+                });
+                adjustCameraContainerSize(framesizeSelect.value);
+            })
+            .catch(() => { cameraStream.alt = "Cámara no conectada o error al cargar."; });
+
+        startStream();
+        showCanecaSelection();
+        updateUIAfterAdminModeChange();
+
+        dbg("Haciendo ping a Render para despertar el servidor...");
+        fetch(API_URL, { method: 'GET' })
+            .then(() => dbg("Servidor Render activo ✓"))
+            .catch(e => dbg("Ping Render falló: " + e.message));
+    });
+    // ─────────────────────────────────────────────────────────────────────────
+    // SALVAPANTALLAS — 10 segundos de inactividad
+    // ─────────────────────────────────────────────────────────────────────────
+    (function() {
+        const INACTIVITY_MS = 10000; // 10 segundos
+        const ssEl    = document.getElementById('screensaver');
+        const canvas  = document.getElementById('screensaver-canvas');
+        const ctx     = canvas.getContext('2d');
+        let ssTimer   = null;
+        let ssActive  = false;
+        let animFrame = null;
+
+        // ── Partículas de estrella ──────────────────────────────────────────
+        const particles = [];
+        const PARTICLE_COUNT = 160;
+
+        function resizeCanvas() {
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function initParticles() {
+            particles.length = 0;
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                particles.push(createParticle(true));
+            }
+        }
+
+        function createParticle(randomY = false) {
+            const colors = ['#3498db','#2ecc71','#9b59b6','#e67e22','#1abc9c','#ffffff','#f1c40f'];
+            return {
+                x:     Math.random() * canvas.width,
+                y:     randomY ? Math.random() * canvas.height : -5,
+                r:     0.5 + Math.random() * 2.5,
+                speed: 0.3 + Math.random() * 1.2,
+                opacity: 0.4 + Math.random() * 0.6,
+                color:  colors[Math.floor(Math.random() * colors.length)],
+                drift:  (Math.random() - 0.5) * 0.4,
+                pulse:  Math.random() * Math.PI * 2,
+            };
+        }
+
+        function drawParticles(ts) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Fondo degradado oscuro
+            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            grad.addColorStop(0, '#050a12');
+            grad.addColorStop(1, '#0a0f1e');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach((p, i) => {
+                // Pulso de brillo
+                const glow = Math.sin(p.pulse + ts * 0.001) * 0.3 + 0.7;
+                ctx.globalAlpha = p.opacity * glow;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur  = p.r * 6;
+                ctx.shadowColor = p.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Mover partícula
+                p.y += p.speed;
+                p.x += p.drift;
+
+                if (p.y > canvas.height + 5) {
+                    particles[i] = createParticle(false);
+                }
+            });
+
+            ctx.globalAlpha = 1;
+        }
+
+        // Líneas de conexión entre partículas cercanas
+        function drawConnections() {
+            const maxDist = 100;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const d  = Math.sqrt(dx*dx + dy*dy);
+                    if (d < maxDist) {
+                        ctx.globalAlpha = (1 - d / maxDist) * 0.08;
+                        ctx.strokeStyle = '#3498db';
+                        ctx.lineWidth   = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function animateScreensaver(ts) {
+            drawParticles(ts);
+            drawConnections();
+            animFrame = requestAnimationFrame(animateScreensaver);
+        }
+
+        // ── Mostrar / Ocultar ───────────────────────────────────────────────
+        function showScreensaver() {
+            if (ssActive) return;
+            ssActive = true;
+            resizeCanvas();
+            initParticles();
+            ssEl.classList.add('active');
+            animFrame = requestAnimationFrame(animateScreensaver);
+        }
+
+        function hideScreensaver() {
+            if (!ssActive) return;
+            ssActive = false;
+            ssEl.classList.remove('active');
+            if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+            resetInactivityTimer();
+        }
+
+        // ── Timer de inactividad ────────────────────────────────────────────
+        function resetInactivityTimer() {
+            clearTimeout(ssTimer);
+            ssTimer = setTimeout(showScreensaver, INACTIVITY_MS);
+        }
+
+        // ── Eventos de actividad ────────────────────────────────────────────
+        const activityEvents = ['mousemove','mousedown','keydown','touchstart','touchmove','scroll','wheel','click'];
+        activityEvents.forEach(evt => {
+            document.addEventListener(evt, () => {
+                if (ssActive) hideScreensaver();
+                else resetInactivityTimer();
+            }, { passive: true });
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Arrancar el timer al cargar
+        resetInactivityTimer();
+    })();
+
+    </script>
+</html>
