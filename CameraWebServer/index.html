@@ -1324,19 +1324,26 @@
         startLoadingTimers();
 
         try {
-            dbg("Capturando imagen desde Flask → ESP32...");
-            // ✅ /capture es proxy de Flask
-            const captureResponse = await fetch(`/capture?_cb=${Date.now()}`);
-            if (!captureResponse.ok) throw new Error(`ESP32 capture error: ${captureResponse.status}`);
-            const blob = await captureResponse.blob();
-            dbg(`Imagen capturada: ${blob.size} bytes`);
-
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            await new Promise(r => reader.onloadend = r);
-            const base64Image = reader.result.split(',')[1];
+            dbg("Capturando fotograma actual del stream de video en el navegador...");
+            
+            // 1. Creamos un canvas temporal para congelar el fotograma actual
+            const canvas = document.createElement("canvas");
+            
+            // Forzamos el tamaño nativo que requiere tu modelo MobileNetV2 (224x224)
+            canvas.width = cameraStream.naturalWidth || 224;
+            canvas.height = cameraStream.naturalHeight || 224;
+            
+            const ctx = canvas.getContext("2d");
+            // Dibujamos lo que se está viendo en ese instante en 'cameraStream'
+            ctx.drawImage(cameraStream, 0, 0, canvas.width, canvas.height);
+            
+            // 2. Convertimos a Base64 y removemos el encabezado del DataURL
+            const dataURL = canvas.toDataURL("image/jpeg");
+            const base64Image = dataURL.split(',')[1];
+            
             dbg(`Base64 listo (${base64Image.length} chars), enviando a API...`);
 
+            // 3. Enviamos el JSON directamente al endpoint /predict de tu Flask
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1352,7 +1359,6 @@
             dbg(`Keys en respuesta: ${Object.keys(result).join(', ')}`);
 
             // --- INICIO DE LA CORRECCIÓN ---
-            // Si la API devuelve 'index' y 'probabilidades', lo mapeamos al formato que espera el frontend
             if (result.index !== undefined && Array.isArray(result.probabilidades)) {
                 const categorias = ["Caneca_blanca", "Caneca_negra", "Caneca_verde"];
                 
@@ -1436,7 +1442,7 @@
                         ${descripcion}<br><br>
                         🎉 ¡Bien hecho! Clasificaste correctamente el residuo. Gracias por ayudar al planeta.
                     </p>
-                                        <div style="margin:10px auto;max-width:300px;text-align:left;font-size:0.42em;color:var(--text-muted);">
+                    <div style="margin:10px auto;max-width:300px;text-align:left;font-size:0.42em;color:var(--text-muted);">
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Blanca</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaBlanca}%,100%);background:#2980b9;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaBlanca}%</span></div>
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Negra</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaNegra}%,100%);background:#2c3e50;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaNegra}%</span></div>
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Verde</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaVerde}%,100%);background:#27ae60;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaVerde}%</span></div>
@@ -1453,7 +1459,7 @@
                         Este residuo pertenece a la <strong>${nombre}</strong>.<br>
                         ${descripcion}
                     </p>
-                                        <div style="margin:10px auto;max-width:300px;text-align:left;font-size:0.42em;color:var(--text-muted);">
+                    <div style="margin:10px auto;max-width:300px;text-align:left;font-size:0.42em;color:var(--text-muted);">
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Blanca</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaBlanca}%,100%);background:#2980b9;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaBlanca}%</span></div>
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Negra</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaNegra}%,100%);background:#2c3e50;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaNegra}%</span></div>
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;"><span style="width:52px;font-weight:600">Verde</span><div style="flex:1;background:rgba(0,0,0,0.08);border-radius:4px;height:8px;"><div style="width:min(${pct.canecaVerde}%,100%);background:#27ae60;height:8px;border-radius:4px;transition:width 0.5s;"></div></div><span style="width:36px;text-align:right">${pct.canecaVerde}%</span></div>
@@ -1491,24 +1497,46 @@
         hideCanecaSelection();
         fadeOut(predictionResultDiv);
         fadeOut(nextSection);
-        fadeIn(loadingSpinner, 'flex');
-
-        // ✅ /capture es proxy de Flask → ESP32
-        const testImg = new Image();
-        testImg.crossOrigin = 'anonymous';
-        testImg.src = `/capture?_cb=${Date.now()}`;
-        testImg.onload = () => {
-            cameraStream.src = testImg.src;
-            predictAndEvaluate(selectedCaneca);
-        };
-        testImg.onerror = () => {
-            predictAndEvaluate(selectedCaneca);
-        };
+        
+        // Ejecutamos directamente la predicción aprovechando el canvas del stream
+        predictAndEvaluate(selectedCaneca);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // ESP32 CAM HELPERS
-    // ─────────────────────────────────────────────────────────────────────────
+    function handleCanecaSelection(selectedCaneca) {
+        actualizarConsejoPorCaneca(selectedCaneca);
+        hideCanecaSelection();
+        fadeOut(predictionResultDiv);
+        fadeOut(nextSection);
+        fadeIn(loadingSpinner, 'flex');
+
+        try {
+            // 1. Capturamos el fotograma actual del streaming en vivo (ID: cameraStream)
+            const canvas = document.createElement("canvas");
+            // Forzamos el tamaño al que requiere el modelo (224x224)
+            canvas.width = cameraStream.naturalWidth || 224;
+            canvas.height = cameraStream.naturalHeight || 224;
+            
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(cameraStream, 0, 0, canvas.width, canvas.height);
+            
+            // 2. Lo convertimos a Base64
+            const dataURL = canvas.toDataURL("image/jpeg");
+            const base64Image = dataURL.split(",")[1];
+
+            // 3. Guardamos temporalmente el Base64 en una variable global o propiedad 
+            // para que predictAndEvaluate la pueda enviar
+            window.currentBase64Image = base64Image;
+
+            // Continuamos con tu flujo normal
+            predictAndEvaluate(selectedCaneca);
+
+        } catch (error) {
+            console.error("Error al capturar fotograma de la cámara:", error);
+            // Si algo falla al capturar, igual intentamos evaluar para ver qué responde el backend
+            predictAndEvaluate(selectedCaneca);
+        }
+    }
+
     function fetchUrl(url, cb) {
         fetch(url)
             .then(r => r.status !== 200 ? cb(r.status, r.statusText) : r.text().then(d => cb(200, d)))
