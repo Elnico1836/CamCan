@@ -1140,9 +1140,8 @@
         }
     }
 
-    var streamUrl = baseHost + ':81';
-
-    const API_URL = "http://192.168.0.5:5000/predict"
+    var streamUrl = window.location.origin;
+    const API_URL = "/predict"
 
     dbg(`baseHost: ${baseHost}`);
     dbg(`API_URL: ${API_URL}`);
@@ -1556,7 +1555,9 @@
         else el.value = value;
     };
 
-    const startStream = () => { cameraStream.src = `${streamUrl}/stream`; };
+    const startStream = () => {
+        cameraStream.src = '/video/stream';
+    };
 
     function adjustCameraContainerSize(v) {
         const map = { '13':[640,480],'12':[640,512],'11':[640,360],'10':[640,480],'9':[640,480],

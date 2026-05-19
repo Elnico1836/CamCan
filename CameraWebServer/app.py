@@ -1,47 +1,90 @@
-from flask_cors import CORS
-from flask import Flask, request, jsonify
+from flask import Flask, Response, send_file, jsonify
+import cv2
 import numpy as np
-from PIL import Image
-import io
-import base64
-import tensorflow as tf
+import time
 
 app = Flask(__name__)
-CORS(app)
 
-model = tf.keras.models.load_model("clasificador_canecas.h5")
+# CONFIGURACIÓN ÚNICA
+ESP32_IP = "192.168.0.25"
+ESP32_STREAM_URL = f"http://{ESP32_IP}/stream"
 
-def preprocess(image):
-    image = image.resize((224, 224))
-    img = np.array(image).astype(np.float32) / 255.0
-    return np.expand_dims(img, axis=0)
+# Inicializar la captura de video nativa por OpenCV conectando al nuevo stream del ESP32
+camera = cv2.VideoCapture(ESP32_STREAM_URL)
 
-@app.route('/predict', methods=['POST'])
-def predict():
+# Variable global para almacenar el resultado del clasificador de forma limpia
+ultima_prediccion = "Procesando..."
+
+def procesar_ia(frame):
+    global ultima_prediccion
     try:
-        data = request.json
-        if not data or 'imagen' not in data:
-            return jsonify({"error": "No se recibió la imagen"}), 400
-
-        img_data = base64.b64decode(data['imagen'])
-        image = Image.open(io.BytesIO(img_data)).convert('RGB')
-
-        input_data = preprocess(image)
-
-        output = model.predict(input_data)[0]
+        # =====================================================================
+        # TU MODELO DE CLASIFICACIÓN (MobileNetV2 / TFLite) VA AQUÍ:
+        # 1. Redimensionas el frame (ej. 224x224)
+        # 2. Normalizas los datos
+        # 3. Invocas al modelo y obtienes el resultado de la clase.
+        #
+        # Ejemplo:
+        #  clase_detectada = mi_modelo.predict(frame_procesado)
+        #  ultima_prediccion = clases[np.argmax(clase_detectada)]
+        # =====================================================================
         
-        index = int(np.argmax(output))
-
-        return jsonify({
-            "index": index,
-            "probabilidades": output.tolist()
-        })
+        # Simulación temporal (Reemplázala con tu modelo real)
+        ultima_prediccion = "Organico / Reciclable (Modelo Activo)"
+        
+        # Mantenemos el frame completamente limpio para proteger la estética visual.
+        pass
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Error en procesamiento de IA: {e}")
+    return frame
 
-@app.route('/predict', methods=['GET'])
-def ping():
-    return jsonify({"status": "Servidor activo"}), 200
+def generate_frames():
+    while True:
+        success, frame = camera.read()
+        
+        if not success:
+            print("⚠️ Buscando señal del stream del ESP32... Verifica la IP o conexión.")
+            time.sleep(0.5)
+            continue
+
+        # Pasar el cuadro por el modelo (actualiza la variable de predicción de fondo)
+        frame = procesar_ia(frame)
+
+        # Codificar el cuadro en JPG limpio
+        ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret:
+            continue
+            
+        frame_bytes = buffer.tobytes()
+        yield (
+            b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n' +
+            frame_bytes +
+            b'\r\n'
+        )
+
+@app.route('/video/stream')
+def video():
+    return Response(
+        generate_frames(),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
+
+@app.route('/prediction')
+def prediction():
+    """ Devuelve el estado de la clasificación en JSON. 
+        Úsalo en tu index.html con JavaScript para mostrarlo de forma estética. """
+    return jsonify({"clase": ultima_prediccion})
+
+@app.route('/status')
+def status():
+    if camera.isOpened():
+        return jsonify({"status": "connected"})
+    return jsonify({"status": "disconnected"})
+
+@app.route("/")
+def home():
+    return send_file("index.html")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, threaded=True)
