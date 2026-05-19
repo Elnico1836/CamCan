@@ -14,10 +14,10 @@ const char* password = "Luchis12088";
 #define LED_NEGRA 47
 #define LED_VERDE 48
 
-WebServer server(80);
+WebServer server(81);
 
 void handleCapture();
-void handleStream(); // <-- 1. CAMBIO: Declaramos la función para streaming continuo
+void handleStream();
 void handleLedOn();
 void handleLedOff();
 
@@ -62,8 +62,8 @@ void setup() {
   config.pixel_format = PIXFORMAT_JPEG;
 
   if (psramFound()) {
-    config.frame_size = FRAMESIZE_XGA;
-    config.jpeg_quality = 10;
+    config.frame_size = FRAMESIZE_SVGA;
+    config.jpeg_quality = 12;
     config.fb_count = 2;
   } else {
     config.frame_size = FRAMESIZE_QVGA;

@@ -946,11 +946,31 @@
     };
 
     const CANECA_FALLBACK = {
+        // Clases exactas del modelo .h5 (caso puede variar)
         "caneca_blanca":  "canecaBlanca",
         "caneca_negra":   "canecaNegra",
         "caneca_verde":   "canecaVerde",
         "caneca_fondo":   "canecaFondo",
+        // Variantes sin guión bajo
+        "canecablanca":   "canecaBlanca",
+        "canecanegra":    "canecaNegra",
+        "canecaverde":    "canecaVerde",
+        "canecafondo":    "canecaFondo",
+        // Solo la palabra
+        "blanca":         "canecaBlanca",
+        "negra":          "canecaNegra",
+        "verde":          "canecaVerde",
         "fondo":          "canecaFondo",
+        // Con espacios
+        "caneca blanca":  "canecaBlanca",
+        "caneca negra":   "canecaNegra",
+        "caneca verde":   "canecaVerde",
+        "caneca fondo":   "canecaFondo",
+        // Minúsculas
+        "Caneca_blanca":  "canecaBlanca",
+        "Caneca_negra":   "canecaNegra",
+        "Caneca_verde":   "canecaVerde",
+        "Caneca_fondo":   "canecaFondo",
     };
 
     const CONSEJOS_LATERALES = [
@@ -1122,26 +1142,13 @@
     // ─────────────────────────────────────────────────────────────────────────
     // CONFIG
     // ─────────────────────────────────────────────────────────────────────────
-    var baseHost = document.location.origin;
+    // ✅ CORRECCIÓN: baseHost SIEMPRE es Flask (mismo origen)
+    // Flask proxea al ESP32. No hay llamadas directas desde el navegador al ESP32.
+    var baseHost = window.location.origin;  // http://localhost:5000 o http://IP_RASP:5000
     let ledPinGlobal = "";
 
-    if (baseHost.startsWith('file://') || baseHost.includes('localhost')) {
-        const storedIP = localStorage.getItem('esp32_ip');
-        if (storedIP) {
-            baseHost = `http://${storedIP}`;
-        } else {
-            const ip = prompt("Ingrese la IP del ESP32 (por ejemplo 192.168.0.17):");
-            if (ip) {
-                baseHost = `http://${ip}`;
-                localStorage.setItem('esp32_ip', ip);
-            } else {
-                showToast("No se configuró IP del ESP32. No se podrá capturar imagen.", "warning", 5000);
-            }
-        }
-    }
-
-    var streamUrl = window.location.origin;
-    const API_URL = "/predict"
+    var streamUrl = window.location.origin;  // Para el stream MJPEG a través de Flask
+    const API_URL = "/predict"  // POST /predict con imagen en base64
 
     dbg(`baseHost: ${baseHost}`);
     dbg(`API_URL: ${API_URL}`);
@@ -1301,7 +1308,8 @@
         showCanecaSelection();
         startStream();
         if (ledPinGlobal !== "") {
-            fetch(`${baseHost}/led_off?pin=${ledPinGlobal}`)
+            // ✅ /led_off es proxy de Flask
+            fetch(`/led_off?pin=${ledPinGlobal}`)
                 .then(() => { ledPinGlobal = ""; })
                 .catch(err => dbg("Error apagando LED: " + err));
         }
@@ -1316,8 +1324,9 @@
         startLoadingTimers();
 
         try {
-            dbg("Capturando imagen desde ESP32...");
-            const captureResponse = await fetch(`${baseHost}/capture?_cb=${Date.now()}`);
+            dbg("Capturando imagen desde Flask → ESP32...");
+            // ✅ /capture es proxy de Flask
+            const captureResponse = await fetch(`/capture?_cb=${Date.now()}`);
             if (!captureResponse.ok) throw new Error(`ESP32 capture error: ${captureResponse.status}`);
             const blob = await captureResponse.blob();
             dbg(`Imagen capturada: ${blob.size} bytes`);
@@ -1410,7 +1419,7 @@
             if (predictedCaneca === 'canecaFondo') {
                 showToast('⚠️ No se detectó un objeto claro. Coloca el residuo frente a la cámara.', 'warning', 4000);
             }
-            if (ledPinGlobal) fetch(`${baseHost}/led_on?pin=${ledPinGlobal}`).catch(err => dbg("LED err: " + err));
+            if (ledPinGlobal) fetch(`/led_on?pin=${ledPinGlobal}`).catch(err => dbg("LED err: " + err));
 
             mostrarConsejoResultado(mejorSubcat, predictedCaneca);
 
@@ -1469,7 +1478,7 @@
                 <span class="prediction-result__message--incorrect">
                     ⚠️ Error al realizar la predicción.<br>
                     <small style="font-size:0.6em;color:#888;">${error.message}</small><br><br>
-                    Verifica que el servidor de Render esté activo.
+                    Verifica la conexión local con el ESP32 o la Raspberry Pi
                 </span>
             `;
             fadeIn(predictionResultDiv, 'block');
@@ -1484,9 +1493,10 @@
         fadeOut(nextSection);
         fadeIn(loadingSpinner, 'flex');
 
+        // ✅ /capture es proxy de Flask → ESP32
         const testImg = new Image();
         testImg.crossOrigin = 'anonymous';
-        testImg.src = `${baseHost}/capture?_cb=${Date.now()}`;
+        testImg.src = `/capture?_cb=${Date.now()}`;
         testImg.onload = () => {
             cameraStream.src = testImg.src;
             predictAndEvaluate(selectedCaneca);
@@ -1543,7 +1553,7 @@
             case 'button': case 'submit':    value = '1'; break;
             default: return;
         }
-        fetch(`${baseHost}/control?var=${el.id}&val=${value}`)
+        fetch(`/control?var=${el.id}&val=${value}`)
             .catch(err => dbg('Error updating config: ' + err));
     }
 
@@ -1556,6 +1566,7 @@
     };
 
     const startStream = () => {
+        // ✅ /video/stream es el proxy de Flask que reenvía ESP32:81/stream
         cameraStream.src = '/video/stream';
     };
 
@@ -1669,26 +1680,31 @@
             }
         });
 
-        fetch(`${baseHost}/status`)
+        // ✅ Verificar health del servidor Flask (no ESP32 directamente)
+        fetch(`/health`)
             .then(r => r.json())
             .then(state => {
-                document.querySelectorAll('.default-action').forEach(el => updateValue(el, state[el.id], false));
-                document.querySelectorAll('.reg-action').forEach(el => {
-                    const reg = parseInt(el.attributes.reg?.nodeValue || 0);
-                    if (reg) updateRegValue(el, state['0x' + reg.toString(16)], false);
-                });
+                if (!state.modelo) {
+                    showToast('⚠️ El modelo de IA no está cargado en el servidor.', 'warning', 6000);
+                }
+                // Los config del ESP32 se ignoran cuando Flask es proxy
                 adjustCameraContainerSize(framesizeSelect.value);
             })
-            .catch(() => { cameraStream.alt = "Cámara no conectada o error al cargar."; });
+            .catch(() => {
+                showToast('⚠️ Error conectando al servidor Flask.', 'error', 5000);
+                cameraStream.alt = "Servidor no disponible.";
+            });
 
         startStream();
         showCanecaSelection();
         updateUIAfterAdminModeChange();
 
-        dbg("Haciendo ping a Render para despertar el servidor...");
-        fetch(API_URL, { method: 'GET' })
-            .then(() => dbg("Servidor Render activo ✓"))
-            .catch(e => dbg("Ping Render falló: " + e.message));
+        // ✅ Verificar que el backend Flask está listo
+        dbg("Verificando servidor Flask...");
+        fetch('/health', { method: 'GET' })
+            .then(r => r.json())
+            .then(d => dbg(`Flask OK — modelo: ${d.modelo ? '✓ cargado' : '⚠️ NO cargado'}`))
+            .catch(e => dbg("Flask no responde: " + e.message));
     });
     // ─────────────────────────────────────────────────────────────────────────
     // SALVAPANTALLAS — 10 segundos de inactividad

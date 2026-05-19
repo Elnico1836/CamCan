@@ -1,90 +1,168 @@
-from flask import Flask, Response, send_file, jsonify
-import cv2
-import numpy as np
+import io
+import base64
+import logging
 import time
+import requests
+import numpy as np
+from flask import Flask, Response, request, jsonify, send_file
+from PIL import Image
+
+#IP ESP32
+ESP32_IP   = "192.168.0.25"
+MODEL_PATH = "clasificador_canecas.h5"
+
+CLASES   = ["Caneca_blanca", "Caneca_negra", "Caneca_verde", "Caneca_fondo"]
+IMG_SIZE = (224, 224)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("CanCamera")
+
+model = None
+
+def load_model():
+    global model
+    try:
+        import tensorflow as tf
+        log.info("TensorFlow %s — cargando modelo %s ...", tf.__version__, MODEL_PATH)
+        model = tf.keras.models.load_model(MODEL_PATH)
+
+        dummy = np.zeros((1, IMG_SIZE[0], IMG_SIZE[1], 3), dtype=np.float32)
+        model.predict(dummy, verbose=0)
+        log.info("✅ Modelo listo. Clases: %s", CLASES)
+    except Exception as e:
+        log.error("❌ Error cargando modelo: %s", e)
+        model = None
 
 app = Flask(__name__)
-
-# CONFIGURACIÓN ÚNICA
-ESP32_IP = "192.168.0.25"
-ESP32_STREAM_URL = f"http://{ESP32_IP}/stream"
-
-# Inicializar la captura de video nativa por OpenCV conectando al nuevo stream del ESP32
-camera = cv2.VideoCapture(ESP32_STREAM_URL)
-
-# Variable global para almacenar el resultado del clasificador de forma limpia
-ultima_prediccion = "Procesando..."
-
-def procesar_ia(frame):
-    global ultima_prediccion
-    try:
-        # =====================================================================
-        # TU MODELO DE CLASIFICACIÓN (MobileNetV2 / TFLite) VA AQUÍ:
-        # 1. Redimensionas el frame (ej. 224x224)
-        # 2. Normalizas los datos
-        # 3. Invocas al modelo y obtienes el resultado de la clase.
-        #
-        # Ejemplo:
-        #  clase_detectada = mi_modelo.predict(frame_procesado)
-        #  ultima_prediccion = clases[np.argmax(clase_detectada)]
-        # =====================================================================
-        
-        # Simulación temporal (Reemplázala con tu modelo real)
-        ultima_prediccion = "Organico / Reciclable (Modelo Activo)"
-        
-        # Mantenemos el frame completamente limpio para proteger la estética visual.
-        pass
-    except Exception as e:
-        print(f"Error en procesamiento de IA: {e}")
-    return frame
-
-def generate_frames():
-    while True:
-        success, frame = camera.read()
-        
-        if not success:
-            print("⚠️ Buscando señal del stream del ESP32... Verifica la IP o conexión.")
-            time.sleep(0.5)
-            continue
-
-        # Pasar el cuadro por el modelo (actualiza la variable de predicción de fondo)
-        frame = procesar_ia(frame)
-
-        # Codificar el cuadro en JPG limpio
-        ret, buffer = cv2.imencode('.jpg', frame)
-        if not ret:
-            continue
-            
-        frame_bytes = buffer.tobytes()
-        yield (
-            b'--frame\r\n'
-            b'Content-Type: image/jpeg\r\n\r\n' +
-            frame_bytes +
-            b'\r\n'
-        )
-
-@app.route('/video/stream')
-def video():
-    return Response(
-        generate_frames(),
-        mimetype='multipart/x-mixed-replace; boundary=frame'
-    )
-
-@app.route('/prediction')
-def prediction():
-    """ Devuelve el estado de la clasificación en JSON. 
-        Úsalo en tu index.html con JavaScript para mostrarlo de forma estética. """
-    return jsonify({"clase": ultima_prediccion})
-
-@app.route('/status')
-def status():
-    if camera.isOpened():
-        return jsonify({"status": "connected"})
-    return jsonify({"status": "disconnected"})
 
 @app.route("/")
 def home():
     return send_file("index.html")
 
+@app.route("/health")
+def health():
+    return jsonify({
+        "ok": True,
+        "modelo": model is not None,
+        "esp32": ESP32_IP,
+        "clases": CLASES,
+    })
+
+@app.route("/video/stream")
+def video_stream():
+    esp32_stream_url = f"http://{ESP32_IP}:81/stream"
+    try:
+        r = requests.get(esp32_stream_url, stream=True, timeout=10)
+        content_type = r.headers.get(
+            "Content-Type",
+            "multipart/x-mixed-replace; boundary=frame"
+        )
+        return Response(r.iter_content(chunk_size=4096), content_type=content_type)
+    except Exception as e:
+        log.warning("Stream proxy error: %s", e)
+        return jsonify({"error": f"ESP32 no disponible: {e}"}), 503
+
+@app.route("/capture")
+def capture():
+    url = f"http://{ESP32_IP}/capture"
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code != 200:
+            log.warning("ESP32 /capture devolvió status %d", r.status_code)
+            return jsonify({"error": "ESP32 capture failed"}), 502
+        return Response(r.content, content_type="image/jpeg")
+    except Exception as e:
+        log.warning("Capture proxy error: %s", e)
+        return jsonify({"error": str(e)}), 503
+
+@app.route("/predict", methods=["POST", "GET"])
+def predict():
+    if request.method == "GET":
+        return jsonify({"ok": True, "modelo": model is not None})
+
+    if model is None:
+        log.error("Predicción solicitada pero el modelo no está cargado.")
+        return jsonify({"error": "Modelo no cargado. Verifica clasificador_canecas.h5"}), 503
+
+    data = request.get_json(silent=True) or {}
+    imagen_b64 = data.get("imagen")
+    if not imagen_b64:
+        return jsonify({"error": "Se requiere el campo 'imagen' en base64"}), 400
+
+    try:
+        img_bytes = base64.b64decode(imagen_b64)
+        img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+    except Exception as e:
+        log.warning("Imagen inválida: %s", e)
+        return jsonify({"error": f"Imagen inválida: {e}"}), 400
+
+    img_resized = img.resize(IMG_SIZE, Image.LANCZOS)
+    arr = np.array(img_resized, dtype=np.float32) / 255.0
+    arr = np.expand_dims(arr, axis=0)
+
+    try:
+        t0    = time.perf_counter()
+        preds = model.predict(arr, verbose=0)[0]
+        elapsed_ms = int((time.perf_counter() - t0) * 1000)
+    except Exception as e:
+        log.error("Error en inferencia: %s", e)
+        return jsonify({"error": f"Inferencia fallida: {e}"}), 500
+
+    probs = preds.tolist()
+    idx   = int(np.argmax(preds))
+    clase = CLASES[idx]
+    conf  = float(preds[idx])
+
+    prediccion_list = [
+        {"clase": CLASES[i], "confianza": float(preds[i])}
+        for i in range(len(CLASES))
+    ]
+
+    log.info(
+        "→ %s (%.1f%%) | B:%.0f%% N:%.0f%% V:%.0f%% F:%.0f%% | %dms",
+        clase, conf * 100,
+        probs[0]*100, probs[1]*100, probs[2]*100, probs[3]*100,
+        elapsed_ms,
+    )
+
+    return jsonify({
+        "prediccion":     prediccion_list,
+        "probabilidades": probs,
+        "index":          idx,
+        "clase":          clase,
+        "confianza":      conf,
+        "tiempo_ms":      elapsed_ms,
+    })
+
+@app.route("/led_on")
+def led_on():
+    pin = request.args.get("pin", "")
+    try:
+        requests.get(f"http://{ESP32_IP}/led_on?pin={pin}", timeout=3)
+        return "ok", 200
+    except Exception:
+        return "error", 503
+
+@app.route("/led_off")
+def led_off():
+    pin = request.args.get("pin", "")
+    try:
+        requests.get(f"http://{ESP32_IP}/led_off?pin={pin}", timeout=3)
+        return "ok", 200
+    except Exception:
+        return "error", 503
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, threaded=True)
+    load_model()
+    log.info("🚀 Servidor en http://0.0.0.0:5000")
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=False,
+        threaded=True,
+        use_reloader=False,   # evita doble carga del modelo
+    )
