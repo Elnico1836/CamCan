@@ -2221,6 +2221,12 @@
             // Arrancar el timer al cargar
             resetInactivityTimer();
         })();
+
+        document.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            }
+        }, { once: true }); // Se activa con el primer click del usuario
     </script>
 
     <div id="countdown-overlay">

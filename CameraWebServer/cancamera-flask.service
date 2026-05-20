@@ -1,0 +1,18 @@
+[Unit]
+Description=CanCamera Flask Backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=elnico1836
+WorkingDirectory=/home/elnico1836/cancamera
+ExecStart=/home/elnico1836/cancamera/venv/bin/python app.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/elnico1836/cancamera/logs/flask.log
+StandardError=append:/home/elnico1836/cancamera/logs/flask.log
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
