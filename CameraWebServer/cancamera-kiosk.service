@@ -1,28 +1,13 @@
 [Unit]
-Description=CanCamera Kiosko Chromium
-After=cancamera-flask.service graphical.target
-Requires=cancamera-flask.service
+Description=Kiosko CamCan
+After=graphical.target
 
 [Service]
-Type=simple
 User=elnico1836
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/elnico1836/.Xauthority
-ExecStartPre=/bin/sleep 15
-ExecStart=/usr/bin/chromium-browser \
-    --kiosk \
-    --fullscreen \
-    --noerrdialogs \
-    --disable-infobars \
-    --no-first-run \
-    --disable-session-crashed-bubble \
-    --disable-restore-session-state \
-    --autoplay-policy=no-user-gesture-required \
-    --app=http://localhost:5000
+Environment="DISPLAY=:0"
+WorkingDirectory=/home/elnico1836/cancamera/CameraWebServer
+ExecStart=/home/elnico1836/miniforge3/envs/cancamera/bin/python app.py
 Restart=always
-RestartSec=5
-StandardOutput=append:/home/elnico1836/cancamera/logs/kiosk.log
-StandardError=append:/home/elnico1836/cancamera/logs/kiosk.log
 
 [Install]
 WantedBy=graphical.target
