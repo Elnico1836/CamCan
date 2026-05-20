@@ -1,0 +1,10 @@
+name: cancamera
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - flask
+  - tensorflow
+  - pillow
+  - requests
+  - numpy
