@@ -1,18 +1,12 @@
 [Unit]
-Description=CamCan Flask Backend
-After=network-online.target
-Wants=network-online.target
+Description=Servidor Flask CamCan
+After=network.target
 
 [Service]
-Type=simple
 User=elnico1836
 WorkingDirectory=/home/elnico1836/CamCan/CameraWebServer
-ExecStart=/home/elnico1836/miniforge3/envs/cancamera/bin/python /home/elnico1836/CamCan/CameraWebServer/app.py
+ExecStart=/home/elnico1836/miniforge3/envs/cancamera/bin/python app.py
 Restart=always
-RestartSec=5
-Environment=PYTHONUNBUFFERED=1
-StandardOutput=append:/home/elnico1836/CamCan/logs/flask.log
-StandardError=append:/home/elnico1836/CamCan/logs/flask.log
 
 [Install]
 WantedBy=multi-user.target
