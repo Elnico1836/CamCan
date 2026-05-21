@@ -6,8 +6,8 @@
 #include "camera_pins.h"
 
 // WIFI
-const char* ssid = "ETITC-DOCENTES";
-const char* password = "Navegar2018..";
+const char* ssid = "Tecno";
+const char* password = "nicopro123";
 
 // LEDs
 #define LED_BLANCA 45
