@@ -25,5 +25,5 @@ new_model = tf.keras.Sequential([
 new_model.set_weights(old_model.get_weights())
 
 # Guarda en formato compatible
-new_model.save("clasificador_canecas_v2.keras")
+new_model.save("clasificador_canecas_compat.keras")
 print("Listo:", new_model.input_shape)
