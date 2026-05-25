@@ -9,7 +9,7 @@ from PIL import Image
 
 #IP ESP32
 ESP32_IP   = "10.44.198.17"
-MODEL_PATH = "clasificador_canecas.h5"
+MODEL_PATH = "clasificador_canecas_compat.keras"
 
 CLASES   = ["Caneca_blanca", "Caneca_negra", "Caneca_verde", "Caneca_fondo"]
 IMG_SIZE = (224, 224)
