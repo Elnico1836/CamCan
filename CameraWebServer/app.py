@@ -28,7 +28,7 @@ def load_model():
     try:
         import tensorflow as tf
 
-        @tf.keras.saving.register_keras_serializable()
+        @tf.keras.utils.register_keras_serializable()
         class FixedBatchNorm(tf.keras.layers.BatchNormalization):
             def __init__(self, **kwargs):
                 kwargs.pop('renorm', None)
