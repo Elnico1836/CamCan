@@ -5,17 +5,22 @@ echo "Copiando servicios..."
 sudo cp ~/CamCan/CameraWebServer/cancamera-flask.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable cancamera-flask
-sudo systemctl set-default graphical.target
+sudo raspi-config nonint do_boot_behaviour B2
 
-echo "Configurando autostart labwc..."
-mkdir -p ~/.config/labwc
-cp ~/CamCan/CameraWebServer/autostart-labwc ~/.config/labwc/autostart
-
-echo "Configurando bash_profile..."
+echo "Configurando arranque X11..."
 cat > ~/.bash_profile << 'EOF'
 if [[ -z $DISPLAY && $(tty) == /dev/tty1 ]]; then
-    exec startx /usr/bin/labwc -- :0 vt1
+    exec startx -- :0 vt1
 fi
+EOF
+
+cat > ~/.xinitrc << 'EOF'
+xset s off
+xset -dpms
+xset s noblank
+unclutter -idle 3 -root &
+sleep 10
+chromium --no-sandbox --kiosk --disable-infobars http://localhost:5000
 EOF
 
 echo "Reiniciando Flask..."
