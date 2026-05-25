@@ -7,3 +7,4 @@ sudo systemctl enable cancamera-flask cancamera-kiosk
 sudo systemctl restart cancamera-flask
 sleep 5
 curl http://localhost:5000/health
+cp ~/CamCan/CameraWebServer/autostart ~/.config/lxsession/LXDE-pi/autostart
