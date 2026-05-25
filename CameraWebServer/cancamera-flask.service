@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=simple
 User=elnico1836
 WorkingDirectory=/home/elnico1836/CamCan/CameraWebServer
+ExecStartPre=/bin/mkdir -p /home/elnico1836/CamCan/logs
 ExecStart=/home/elnico1836/miniforge3/envs/cancamera/bin/python /home/elnico1836/CamCan/CameraWebServer/app.py
 Restart=always
 RestartSec=5
