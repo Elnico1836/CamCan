@@ -20,7 +20,10 @@ xset -dpms
 xset s noblank
 unclutter -idle 3 -root &
 sleep 10
-chromium --no-sandbox --kiosk --disable-infobars http://localhost:5000
+chromium --no-sandbox --kiosk --disable-infobars --noerrdialogs \
+  --disable-session-crashed-bubble --disable-restore-session-state \
+  --start-fullscreen --window-size=1024,600 --window-position=0,0 \
+  http://localhost:5000
 EOF
 
 echo "Reiniciando Flask..."
