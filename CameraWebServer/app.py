@@ -27,9 +27,20 @@ def load_model():
     global model
     try:
         import tensorflow as tf
-        log.info("TensorFlow %s — cargando modelo %s ...", tf.__version__, MODEL_PATH)
-        model = tf.keras.models.load_model(MODEL_PATH)
 
+        @tf.keras.utils.register_keras_serializable()
+        class FixedBatchNorm(tf.keras.layers.BatchNormalization):
+            def __init__(self, **kwargs):
+                kwargs.pop('renorm', None)
+                kwargs.pop('renorm_clipping', None)
+                kwargs.pop('renorm_momentum', None)
+                super().__init__(**kwargs)
+
+        log.info("TensorFlow %s — cargando modelo %s ...", tf.__version__, MODEL_PATH)
+        model = tf.keras.models.load_model(
+            MODEL_PATH,
+            custom_objects={"FixedBatchNorm": FixedBatchNorm}
+        )
         dummy = np.zeros((1, IMG_SIZE[0], IMG_SIZE[1], 3), dtype=np.float32)
         model.predict(dummy, verbose=0)
         log.info("✅ Modelo listo. Clases: %s", CLASES)
