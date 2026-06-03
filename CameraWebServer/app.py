@@ -8,7 +8,7 @@ from flask import Flask, Response, request, jsonify, send_file
 from PIL import Image
 
 #IP ESP32
-ESP32_IP   = "10.44.198.17"
+ESP32_IP   = "10.135.4.17"
 MODEL_PATH = "clasificador_canecas_compat.keras"
 
 CLASES   = ["Caneca_blanca", "Caneca_negra", "Caneca_verde", "Caneca_fondo"]

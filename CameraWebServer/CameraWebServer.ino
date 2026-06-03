@@ -84,14 +84,25 @@ void setup() {
   s->set_brightness(s, 1);
   s->set_saturation(s, 0);
 
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
   WiFi.begin(ssid, password);
 
   Serial.print("Conectando WiFi");
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+  int intentos = 0;
+
+while (WiFi.status() != WL_CONNECTED && intentos < 30) {
+  delay(500);
+  Serial.print(".");
+  intentos++;
+}
+
+if (WiFi.status() != WL_CONNECTED) {
+  Serial.println("\nNo se pudo conectar al WiFi");
+  Serial.println(WiFi.status());
+  return;
+}
 
   Serial.println("");
   Serial.println("WiFi conectado");
