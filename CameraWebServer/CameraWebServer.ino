@@ -92,9 +92,7 @@ void setup() {
 
 while (true) {
     wl_status_t st = WiFi.status();
-
-    Serial.print("Estado WiFi: ");
-    Serial.println(st);
+    Serial.print(".");
 
     if (st == WL_CONNECTED) {
         Serial.println("CONECTADO!");
