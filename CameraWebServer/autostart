@@ -1,5 +1,0 @@
-@xset s off
-@xset -dpms
-@xset s noblank
-@unclutter -idle 3 -root
-@bash -c "sleep 15 && chromium-browser --kiosk --disable-infobars --noerrdialogs --disable-session-crashed-bubble --disable-restore-session-state --no-first-run --incognito http://localhost:5000"
