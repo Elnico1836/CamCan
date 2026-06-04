@@ -6,7 +6,7 @@
 #include "camera_pins.h"
 
 // WIFI
-const char* ssid = "Tecno";
+const char* ssid = "CamCan_AP";
 const char* password = "nicopro123";
 
 // LEDs
@@ -62,7 +62,7 @@ void setup() {
   config.pixel_format = PIXFORMAT_JPEG;
 
   if (psramFound()) {
-    config.frame_size = FRAMESIZE_SVGA;
+    config.frame_size = FRAMESIZE_VGA;
     config.jpeg_quality = 12;
     config.fb_count = 2;
   } else {
@@ -85,30 +85,29 @@ void setup() {
   s->set_saturation(s, 0);
 
   WiFi.mode(WIFI_STA);
-  WiFi.setSleep(false);
+  WiFi.disconnect(true, true);
+  delay(1000);
+
   WiFi.begin(ssid, password);
 
-  Serial.print("Conectando WiFi");
+while (true) {
+    wl_status_t st = WiFi.status();
 
-  int intentos = 0;
+    Serial.print("Estado WiFi: ");
+    Serial.println(st);
 
-while (WiFi.status() != WL_CONNECTED && intentos < 30) {
-  delay(500);
-  Serial.print(".");
-  intentos++;
+    if (st == WL_CONNECTED) {
+        Serial.println("CONECTADO!");
+        Serial.print("IP: ");
+        Serial.println(WiFi.localIP());
+        break;
+    }
+
+    delay(1000);
 }
 
-if (WiFi.status() != WL_CONNECTED) {
-  Serial.println("\nNo se pudo conectar al WiFi");
-  Serial.println(WiFi.status());
-  return;
-}
-
-  Serial.println("");
-  Serial.println("WiFi conectado");
-
-  Serial.print("ESP32 IP: ");
-  Serial.println(WiFi.localIP());
+  Serial.print("La direcciòn del MAC del ESP32 es: ");
+  Serial.println(WiFi.macAddress());
 
   // RUTAS DEL SERVIDOR
   server.on("/capture", HTTP_GET, handleCapture);
