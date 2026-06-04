@@ -1,2237 +1,2193 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Trash Can</title>
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/256/2602/2602768.png" type="image/png">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <style>
-        /* ── CSS VARIABLES ── */
-        :root {
-            --bg: #e0f2f7;
-            --surface: #ffffff;
-            --surface2: #e8f6f3;
-            --border: #ddd;
-            --text-primary: #2c3e50;
-            --text-secondary: #555;
-            --text-muted: #666;
-            --accent: #3498db;
-            --accent-dark: #1f5f85;
-            --green: #2ecc71;
-            --green-dark: #1e8449;
-            --red: #e74c3c;
-            --shadow: rgba(0,0,0,0.15);
-            --overlay-bg: rgba(0,0,0,0.8);
-            --scrollbar-track: #d0e8f5;
-            --scrollbar-thumb: #3498db;
-        }
-        body.dark-theme {
-            --bg: #121212;
-            --surface: #1e1e1e;
-            --surface2: #252525;
-            --border: #333;
-            --text-primary: #e0e0e0;
-            --text-secondary: #aaa;
-            --text-muted: #888;
-            --accent: #4db8ff;
-            --accent-dark: #2980b9;
-            --shadow: rgba(0,0,0,0.5);
-            --overlay-bg: rgba(0,0,0,0.92);
-            --scrollbar-track: #2a2a2a;
-            --scrollbar-thumb: #4db8ff;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024, height=600, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CamCan — Clasificador Inteligente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════════════ */
+:root {
+  --verde:       #2d9e4f;
+  --verde-claro: #4fc472;
+  --verde-oscuro:#1a6b32;
+  --negro:       #1a1a2e;
+  --blanco:      #fffef5;
+  --crema:       #fdf6e3;
+  --amarillo:    #f5c842;
+  --naranja:     #f07d2a;
+  --rojo:        #e53935;
+  --azul:        #1976d2;
+  --pixel:       'Press Start 2P', monospace;
+  --body:        'Nunito', sans-serif;
 
-        /* ── SCROLLBAR ── */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-dark); }
+  /* Canecas */
+  --c-blanca:    #4fc3f7;
+  --c-negra:     #455a64;
+  --c-verde:     #43a047;
+  --c-fondo:     #9575cd;
+}
 
-        /* ── BASE ── */
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-primary);
-            transition: background-color 0.4s ease, color 0.4s ease;
-        }
-        h1, h2, h3 { color: var(--text-primary); font-weight: 700; margin-bottom: 25px; transition: color 0.4s; }
-        h2 { font-size: 2.2em; margin-top: 30px; margin-bottom: 10px; }
-        h3 { color: var(--text-secondary); font-weight: 400; font-size: 1.2em; margin-bottom: 25px; }
-        p  { color: var(--text-muted); font-size: 1.1em; line-height: 1.6; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* ── DARK MODE TOGGLE ── */
-        #dark-mode-btn {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            border: none;
-            background: var(--surface);
-            box-shadow: 0 2px 10px var(--shadow);
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
-        }
-        #dark-mode-btn:hover { transform: scale(1.1); box-shadow: 0 4px 16px var(--shadow); }
+html, body {
+  width: 1024px;
+  height: 600px;
+  overflow: hidden;
+  font-family: var(--body);
+  background: var(--negro);
+  color: var(--blanco);
+  /* TÁCTIL: eliminar cursor de mouse */
+  cursor: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
 
-        /* ── LATERAL PANEL ── */
-        #panel-consejo-lateral {
-            position: fixed;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            width: 260px;
-            padding: 15px 18px;
-            background: linear-gradient(135deg, var(--surface), var(--surface2));
-            border-left: 5px solid var(--green);
-            border-radius: 12px;
-            box-shadow: 0 6px 15px var(--shadow);
-            font-size: 0.95em;
-            color: var(--text-primary);
-            text-align: left;
-            z-index: 9999;
-            transition: background 0.4s, color 0.4s, box-shadow 0.4s;
-        }
-        #panel-consejo-lateral { transition: background 0.4s, color 0.4s, box-shadow 0.4s, border-left-color 0.4s; }
-        #panel-consejo-lateral.caneca-blanca { border-left-color: #2980b9; }
-        #panel-consejo-lateral.caneca-negra  { border-left-color: #2c3e50; }
-        #panel-consejo-lateral.caneca-verde  { border-left-color: #27ae60; }
-        #panel-consejo-lateral.caneca-fondo  { border-left-color: #8e44ad; }
-        body.dark-theme #panel-consejo-lateral.caneca-negra { border-left-color: #7f8c8d; }
-        #texto-consejo-lateral { transition: color 0.5s ease; }
-        #panel-consejo-lateral { transition: background 0.4s, color 0.4s, box-shadow 0.4s, border-left-color 0.5s ease; }
-        #texto-consejo-lateral { transition: color 0.5s ease; }
-        #panel-consejo-lateral.caneca-blanca { border-left-color: #2980b9; }
-        #panel-consejo-lateral.caneca-negra  { border-left-color: #555; }
-        #panel-consejo-lateral.caneca-verde  { border-left-color: #27ae60; }
-        #panel-consejo-lateral.caneca-fondo  { border-left-color: #8e44ad; }
-        body.dark-theme #panel-consejo-lateral.caneca-negra { border-left-color: #95a5a6; }
-        #panel-consejo-lateral strong {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--green-dark);
-            font-size: 1em;
-        }
+button, [role="button"] {
+  cursor: none;
+  -webkit-tap-highlight-color: transparent;
+  border: none;
+  font-family: var(--body);
+}
 
-        /* ── RESPONSIVE: mobile ── */
-        @media (max-width: 768px) {
-            #panel-consejo-lateral {
-                position: static;
-                transform: none;
-                width: 90%;
-                max-width: 500px;
-                margin: 0 auto 20px auto;
-                right: auto;
-                top: auto;
-            }
-            #dark-mode-btn { top: 10px; right: 10px; }
-        }
+/* ══════════════════════════════════════════════════
+   PIXEL FONT HELPER
+══════════════════════════════════════════════════ */
+.pixel { font-family: var(--pixel); }
 
-        /* ── RESULT PANEL ── */
-        #panel-consejo-resultado {
-            display: none;
-            opacity: 0;
-            margin-top: 15px;
-            max-width: 500px;
-            width: 90%;
-            padding: 14px 20px;
-            background: linear-gradient(135deg, var(--surface), var(--surface2));
-            border-top: 5px solid var(--accent);
-            border-radius: 14px;
-            box-shadow: 0 4px 12px var(--shadow);
-            font-size: 0.95em;
-            color: var(--text-primary);
-            text-align: center;
-            transition: opacity 0.4s ease, background 0.4s, color 0.4s;
-        }
-        #panel-consejo-resultado.blanca { border-top-color: #2980b9; }
-        #panel-consejo-resultado.negra  { border-top-color: #2c3e50; }
-        #panel-consejo-resultado.verde  { border-top-color: #27ae60; }
-        #panel-consejo-resultado.verde  #texto-consejo-resultado { color: #1e8449; }
-        #panel-consejo-resultado.fondo  { border-top-color: #8e44ad; }
-        #panel-consejo-resultado.fondo  #texto-consejo-resultado { color: #6c3483; }
-        body.dark-theme #panel-consejo-resultado.blanca #texto-consejo-resultado { color: #5dade2; }
-        body.dark-theme #panel-consejo-resultado.negra  #texto-consejo-resultado { color: #aab7b8; }
-        body.dark-theme #panel-consejo-resultado.verde  #texto-consejo-resultado { color: #2ecc71; }
-        body.dark-theme #panel-consejo-resultado.fondo  #texto-consejo-resultado { color: #bb8fce; }
+/* ══════════════════════════════════════════════════
+   PANTALLA BASE — apilamiento de pantallas
+══════════════════════════════════════════════════ */
+.pantalla {
+  position: absolute;
+  inset: 0;
+  width: 1024px;
+  height: 600px;
+  display: none;
+  overflow: hidden;
+}
+.pantalla.activa { display: flex; }
 
-        /* Color del texto del consejo lateral según caneca seleccionada */
-        #panel-consejo-lateral.caneca-blanca #texto-consejo-lateral { color: #1a6fa8; }
-        #panel-consejo-lateral.caneca-negra  #texto-consejo-lateral { color: #2c3e50; }
-        #panel-consejo-lateral.caneca-verde  #texto-consejo-lateral { color: #1e8449; }
-        #panel-consejo-lateral.caneca-fondo  #texto-consejo-lateral { color: #6c3483; }
-        body.dark-theme #panel-consejo-lateral.caneca-blanca #texto-consejo-lateral { color: #5dade2; }
-        body.dark-theme #panel-consejo-lateral.caneca-negra  #texto-consejo-lateral { color: #aab7b8; }
-        body.dark-theme #panel-consejo-lateral.caneca-verde  #texto-consejo-lateral { color: #2ecc71; }
-        body.dark-theme #panel-consejo-lateral.caneca-fondo  #texto-consejo-lateral { color: #bb8fce; }
-        #panel-consejo-resultado.visible { opacity: 1; }
+/* ══════════════════════════════════════════════════
+   ░░░  SALVAPANTALLAS  ░░░
+══════════════════════════════════════════════════ */
+#pantalla-ss {
+  background: var(--negro);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  z-index: 9999;
+}
 
-        /* ── DEBUG PANEL ── */
-        #debug-panel {
-            display: none;
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.85);
-            color: #0f0;
-            font-family: monospace;
-            font-size: 0.75em;
-            padding: 10px;
-            border-radius: 8px;
-            max-width: 320px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 9999;
-        }
+/* Fondo pixel-art animado */
+#ss-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
 
-        /* ── CAMERA ── */
-        .camera-container {
-            border: 3px solid var(--accent);
-            border-radius: 15px;
-            margin-bottom: 30px;
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            max-width: 800px;
-            height: auto;
-            position: relative;
-            box-shadow: 0 10px 18px var(--shadow);
-            transition: border-color 0.4s;
-        }
-        .camera-container__stream {
-            width: 100%;
-            height: auto;
-            display: block;
-            background-color: #000;
-            color: #FFF;
-            text-align: center;
-            line-height: 480px;
-            font-size: 20px;
-        }
+/* Contenido central del SS */
+.ss-contenido {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
 
-        /* ── LASER SCANNER ── */
-        #laser-scanner {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, transparent 0%, #00ff88 20%, #00ffcc 50%, #00ff88 80%, transparent 100%);
-            box-shadow: 0 0 12px #00ff88, 0 0 24px #00ffcc, 0 0 4px #fff;
-            border-radius: 2px;
-            z-index: 5;
-            animation: laserScan 1.8s ease-in-out infinite;
-            pointer-events: none;
-        }
-        @keyframes laserScan {
-            0%   { top: 0%; opacity: 0.9; }
-            50%  { top: calc(100% - 4px); opacity: 1; }
-            100% { top: 0%; opacity: 0.9; }
-        }
+.ss-titulo {
+  font-family: var(--pixel);
+  font-size: 28px;
+  color: var(--amarillo);
+  text-shadow:
+    4px 4px 0 #a07800,
+    0 0 40px rgba(245,200,66,0.6);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+  animation: ssFloat 3s ease-in-out infinite;
+}
 
-        /* ── CONFIG SECTION ── */
-        .config-section {
-            background-color: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 20px;
-            width: 90%;
-            max-width: 600px;
-            display: none;
-            opacity: 0;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 18px var(--shadow);
-            transition: opacity 0.3s ease, background 0.4s, border-color 0.4s;
-        }
-        .config-section.visible { opacity: 1; }
+.ss-subtitulo {
+  font-family: var(--body);
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
 
-        /* ── BUTTONS ── */
-        .button {
-            background: linear-gradient(145deg, #3aa0e6, #2c80b4);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 25px;
-            cursor: pointer;
-            margin: 10px;
-            font-size: 1.1em;
-            font-weight: 700;
-            box-shadow: 0 5px 0 var(--accent-dark), 0 8px 15px rgba(0,0,0,0.2);
-            transition: all 0.15s ease;
-        }
-        .button:hover {
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 7px 0 var(--accent-dark), 0 12px 22px rgba(0,0,0,0.3);
-        }
-        .button:active { transform: translateY(4px) scale(0.98); box-shadow: 0 2px 0 var(--accent-dark), 0 6px 15px rgba(0,0,0,0.2); }
-        .button--inline    { line-height: 25px; margin: 2px; padding: 2px 8px; }
-        .button--disabled  { cursor: default; background: #a0a0a0; box-shadow: none; transform: none; }
-        .button--disabled:hover { transform: none; box-shadow: none; }
+@keyframes ssFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
 
-        /* ── MENU ── */
-        .menu { display: flex; flex-direction: column; flex-wrap: nowrap; background: var(--surface); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.4s; }
-        .menu__input-group { display: flex; flex-wrap: nowrap; line-height: 28px; margin: 8px 0; align-items: center; }
-        .menu__input-group > label { display: inline-block; padding-right: 15px; min-width: 150px; font-weight: 500; color: var(--text-secondary); }
-        .menu__input-group input, .menu__input-group select { flex-grow: 1; border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; height: 35px; font-size: 1em; background: var(--surface); color: var(--text-primary); transition: background 0.4s, border-color 0.4s, color 0.4s; }
-        .menu__range-min, .menu__range-max { display: inline-block; padding: 0 8px; font-weight: 500; color: var(--text-secondary); }
-        .menu__range-input { appearance: none; width: 100%; height: 10px; background: #dbe4ed; cursor: pointer; margin: 0; border-radius: 5px; }
-        .menu__range-input::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: var(--accent); margin-top: -5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .menu__text-input { border: 1px solid var(--border); font-size: 1em; height: 30px; margin: 2px; outline: 0; border-radius: 5px; padding: 0 8px; background: var(--surface); color: var(--text-primary); transition: background 0.4s, color 0.4s; }
+/* BOTÓN ESCANEAR */
+#btn-escanear {
+  font-family: var(--pixel);
+  font-size: 14px;
+  color: var(--negro);
+  background: var(--amarillo);
+  border: none;
+  padding: 16px 40px;
+  border-radius: 4px;
+  box-shadow:
+    0 6px 0 #a07800,
+    0 10px 30px rgba(245,200,66,0.4),
+    inset 0 2px 0 rgba(255,255,255,0.3);
+  transition: transform 0.1s, box-shadow 0.1s;
+  animation: btnPulse 2s ease-in-out infinite;
+  position: relative;
+}
 
-        /* ── SWITCH ── */
-        .switch { position: relative; display: inline-block; width: 55px; height: 28px; margin-left: auto; }
-        .switch__input { opacity: 0; width: 0; height: 0; }
-        .switch__slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
-        .switch__slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .switch__input:checked + .switch__slider { background-color: var(--green); }
-        .switch__input:checked + .switch__slider:before { transform: translateX(26px); }
+#btn-escanear:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #a07800, 0 4px 15px rgba(245,200,66,0.3);
+}
 
-        .toggle-section-label { cursor: pointer; display: block; font-weight: bold; margin-top: 15px; margin-bottom: 8px; color: var(--text-primary); font-size: 1.1em; }
-        .toggle-section-input { outline: 0; opacity: 0; width: 0; height: 0; }
-        .toggle-section-input:checked + .toggle-section { display: none; }
-        .separator { width: 100%; border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+@keyframes btnPulse {
+  0%, 100% { box-shadow: 0 6px 0 #a07800, 0 10px 30px rgba(245,200,66,0.4), inset 0 2px 0 rgba(255,255,255,0.3); }
+  50%       { box-shadow: 0 6px 0 #a07800, 0 16px 50px rgba(245,200,66,0.7), inset 0 2px 0 rgba(255,255,255,0.3); }
+}
 
-        /* ── CANECA ── */
-        .caneca-question { color: var(--text-secondary); margin-bottom: 0; display: block; font-size: 1.1em; }
-        .caneca-selection {
-            display: flex; justify-content: center; align-items: center;
-            gap: 40px; margin: 40px 0; width: 100%; flex-wrap: wrap;
-            opacity: 0; transition: opacity 0.4s ease;
-        }
-        .caneca-selection.visible { opacity: 1; }
-        .caneca-button {
-            background-color: var(--surface); border: 2px solid var(--border); border-radius: 25px;
-            padding: 25px; cursor: pointer;
-            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            display: flex; flex-direction: column; align-items: center;
-            text-align: center; width: 220px; height: 300px; justify-content: space-around;
-            box-shadow: 0 6px 12px var(--shadow);
-        }
-        .caneca-button:hover { background-color: var(--surface2); border-color: #95a5a6; transform: translateY(-5px) scale(1.03); box-shadow: 0 14px 28px var(--shadow); }
-        .caneca-button__image { width: 160px; height: 160px; border-radius: 20px; object-fit: contain; margin-bottom: 20px; }
-        .caneca-button__text  { font-weight: 700; color: var(--text-primary); font-size: 1.5em; }
+/* Jaguapanela en SS — grande */
+.ss-jagua-wrap {
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 24px rgba(245,200,66,0.5));
+  animation: ssFloat 3.5s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
 
-        /* ── PREDICTION RESULT ── */
-        .prediction-result {
-            display: none;
-            opacity: 0;
-            text-align: center; margin-top: 30px;
-            font-size: 1.8em; font-weight: 700; padding: 20px; border-radius: 15px;
-            background-color: var(--surface); box-shadow: 0 5px 15px var(--shadow);
-            transition: opacity 0.4s ease, background 0.4s;
-        }
-        .prediction-result.visible { opacity: 1; }
-        .prediction-result__icon--correct   { color: var(--green); font-size: 4em; margin-bottom: 10px; }
-        .prediction-result__icon--incorrect { color: var(--red); font-size: 4em; margin-bottom: 10px; }
-        .prediction-result__message--correct   { color: #27ae60; font-size: 1.2em; }
-        .prediction-result__message--incorrect { color: #c0392b; font-size: 1.2em; }
+/* Hint táctil */
+.ss-hint {
+  position: absolute;
+  bottom: 24px;
+  font-family: var(--pixel);
+  font-size: 8px;
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 1px;
+  animation: ssHint 1.8s ease-in-out infinite;
+}
+@keyframes ssHint {
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 0.7; }
+}
 
-        /* ── PREDICTION RESULT — rediseñado ── */
-        .prediction-result {
-            display: none;
-            opacity: 0;
-            text-align: center;
-            margin-top: 30px;
-            font-size: 1.2em;
-            font-weight: 700;
-            padding: 32px 28px 24px;
-            border-radius: 24px;
-            background: var(--surface);
-            box-shadow: 0 8px 32px var(--shadow);
-            transition: opacity 0.4s ease, background 0.4s;
-            max-width: 560px;
-            width: 92%;
-        }
-        .prediction-result.visible { opacity: 1; }
+/* ══════════════════════════════════════════════════
+   ░░░  INSTRUCCIONES  ░░░
+══════════════════════════════════════════════════ */
+#pantalla-instrucciones {
+  background: linear-gradient(135deg, #0d1b0f 0%, #1a2e1c 50%, #0a1a0c 100%);
+  flex-direction: row;
+  align-items: stretch;
+}
 
-        /* Icono grande central */
-        .result-icon-wrap {
-            width: 100px; height: 100px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 16px;
-            font-size: 3.2em;
-            animation: resultPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
-        }
-        .result-icon-wrap--correct   { background: rgba(46,204,113,0.15); border: 4px solid #2ecc71; color: #27ae60; }
-        .result-icon-wrap--incorrect { background: rgba(231,76,60,0.15);  border: 4px solid #e74c3c;  color: #c0392b; }
-        @keyframes resultPop {
-            from { transform: scale(0.3); opacity: 0; }
-            to   { transform: scale(1);   opacity: 1; }
-        }
+.instruc-jagua-col {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.3);
+  border-right: 3px solid rgba(79,196,114,0.2);
+  padding: 24px;
+  gap: 16px;
+  flex-shrink: 0;
+}
 
-        /* Texto principal de resultado */
-        .result-label {
-            font-size: 2em;
-            font-weight: 900;
-            letter-spacing: 1px;
-            margin: 0 0 6px;
-        }
-        .result-label--correct   { color: #27ae60; }
-        .result-label--incorrect { color: #c0392b; }
+.burbuja-texto {
+  background: var(--crema);
+  color: var(--negro);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+  position: relative;
+  max-width: 200px;
+}
+.burbuja-texto::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 20px;
+  border: 6px solid transparent;
+  border-top-color: var(--crema);
+  border-right-color: var(--crema);
+}
 
-        /* Caneca detectada */
-        .result-caneca-badge {
-            display: inline-block;
-            padding: 6px 20px;
-            border-radius: 50px;
-            font-size: 0.9em;
-            font-weight: 700;
-            margin: 10px 0 18px;
-            letter-spacing: 0.5px;
-        }
-        .result-caneca-badge--blanca { background:#d6eaf8; color:#1a5276; border:2px solid #2980b9; }
-        .result-caneca-badge--negra  { background:#d5d8dc; color:#1c2833; border:2px solid #566573; }
-        .result-caneca-badge--verde  { background:#d5f5e3; color:#145a32; border:2px solid #27ae60; }
-        .result-caneca-badge--fondo  { background:#e8daef; color:#4a235a; border:2px solid #8e44ad; }
-        body.dark-theme .result-caneca-badge--blanca { background:#1a4a72; color:#aed6f1; }
-        body.dark-theme .result-caneca-badge--negra  { background:#2c3e50; color:#bdc3c7; }
-        body.dark-theme .result-caneca-badge--verde  { background:#0e5c30; color:#a9dfbf; }
-        body.dark-theme .result-caneca-badge--fondo  { background:#4a235a; color:#d2b4de; }
+.instruc-pasos-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 36px;
+  gap: 20px;
+}
 
-        /* Gráfica de barras de probabilidad */
-        .prob-chart {
-            margin: 16px 0 22px;
-            text-align: left;
-        }
-        .prob-chart__title {
-            font-size: 0.72em;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-        .prob-bar-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 7px 0;
-        }
-        .prob-bar-label {
-            width: 58px;
-            font-size: 0.82em;
-            font-weight: 700;
-            color: var(--text-primary);
-            flex-shrink: 0;
-        }
-        .prob-bar-track {
-            flex: 1;
-            background: rgba(0,0,0,0.08);
-            border-radius: 8px;
-            height: 18px;
-            overflow: hidden;
-            position: relative;
-        }
-        body.dark-theme .prob-bar-track { background: rgba(255,255,255,0.1); }
-        .prob-bar-fill {
-            height: 100%;
-            border-radius: 8px;
-            transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
-            position: relative;
-        }
-        .prob-bar-fill--blanca { background: linear-gradient(90deg,#2980b9,#5dade2); }
-        .prob-bar-fill--negra  { background: linear-gradient(90deg,#566573,#85929e); }
-        .prob-bar-fill--verde  { background: linear-gradient(90deg,#27ae60,#52be80); }
-        .prob-bar-fill--fondo  { background: linear-gradient(90deg,#8e44ad,#bb8fce); }
-        .prob-bar-fill.winner  { box-shadow: 0 0 8px rgba(0,0,0,0.25); }
-        .prob-bar-pct {
-            width: 42px;
-            text-align: right;
-            font-size: 0.82em;
-            font-weight: 700;
-            color: var(--text-primary);
-            flex-shrink: 0;
-        }
+.instruc-titulo {
+  font-family: var(--pixel);
+  font-size: 13px;
+  color: var(--amarillo);
+  margin-bottom: 8px;
+  text-shadow: 2px 2px 0 #a07800;
+}
 
-        /* Descripción debajo */
-        .result-desc {
-            font-size: 0.78em;
-            color: var(--text-secondary);
-            margin: 0 0 20px;
-            line-height: 1.5;
-        }
+.paso {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(79,196,114,0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  animation: pasoSlide 0.4s ease both;
+}
 
-        /* Botones del resultado */
-        .result-buttons {
-            display: flex;
-            gap: 14px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 6px;
-        }
-        .btn-play-game {
-            background: linear-gradient(135deg,#f39c12,#e67e22);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 13px 26px;
-            font-size: 1em;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #c0782a, 0 6px 16px rgba(230,126,34,0.3);
-            transition: all 0.15s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-play-game:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #c0782a, 0 10px 22px rgba(230,126,34,0.4); }
-        .btn-play-game:active { transform: translateY(2px); box-shadow: 0 2px 0 #c0782a; }
-        .btn-back-menu {
-            background: linear-gradient(145deg,#3aa0e6,#2c80b4);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 13px 26px;
-            font-size: 1em;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 0 var(--accent-dark), 0 6px 16px rgba(52,152,219,0.3);
-            transition: all 0.15s ease;
-        }
-        .btn-back-menu:hover { transform: translateY(-2px); }
-        .btn-back-menu:active { transform: translateY(2px); }
+.paso:nth-child(2) { animation-delay: 0.1s; }
+.paso:nth-child(3) { animation-delay: 0.2s; }
+.paso:nth-child(4) { animation-delay: 0.3s; }
 
-        /* Toast de "Jugar un juego" — overlay de countdown */
-        #game-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.82);
-            z-index: 9000;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-        #game-overlay.active { display: flex; }
-        .game-overlay-box {
-            background: var(--surface);
-            border-radius: 24px;
-            padding: 48px 56px;
-            text-align: center;
-            box-shadow: 0 0 60px rgba(243,156,18,0.4);
-            animation: resultPop 0.4s ease both;
-        }
-        .game-overlay-icon { font-size: 4em; margin-bottom: 10px; display: block; }
-        .game-overlay-title { font-size: 2em; font-weight: 900; color: var(--text-primary); margin: 0 0 8px; }
-        .game-overlay-sub   { font-size: 1em; color: var(--text-secondary); margin-bottom: 28px; }
-        .game-overlay-countdown {
-            font-size: 5em;
-            font-weight: 900;
-            background: linear-gradient(135deg,#f39c12,#e67e22);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: countPulse 1s ease infinite;
-            line-height: 1;
-        }
-        @keyframes countPulse {
-            0%,100% { transform: scale(1); }
-            50%      { transform: scale(1.08); }
-        }
+@keyframes pasoSlide {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
 
-        /* ── NEXT SECTION ── */
-        .next-section {
-            display: none;
-            opacity: 0;
-            margin-top: 40px; padding: 30px; border: 1px solid var(--border);
-            border-radius: 15px; background-color: var(--surface); width: 80%; max-width: 700px;
-            text-align: center; box-shadow: 0 5px 15px var(--shadow);
-            transition: opacity 0.4s ease, background 0.4s;
-        }
-        .next-section.visible { opacity: 1; }
-        .next-section__title   { color: var(--text-primary); font-size: 1.8em; margin-bottom: 15px; }
-        .next-section__message { font-size: 1.1em; margin-bottom: 25px; }
-        .next-section__buttons { display: flex; justify-content: center; gap: 20px; }
+.paso-num {
+  font-family: var(--pixel);
+  font-size: 18px;
+  color: var(--amarillo);
+  min-width: 32px;
+  text-shadow: 2px 2px 0 #a07800;
+  margin-top: 2px;
+}
 
-        /* ── CONFIG BUTTON (gear on camera) ── */
-        .config-button {
-            position: absolute; top: 15px; right: 15px;
-            background-color: rgba(0,0,0,0.6); border: none; border-radius: 50%;
-            width: 45px; height: 45px; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; font-size: 28px; color: white; z-index: 10;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-        .config-button:hover { background-color: rgba(0,0,0,0.8); transform: rotate(90deg); }
+.paso-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.paso-titulo {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--blanco);
+}
+.paso-desc {
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.4;
+}
 
-        /* ── OVERLAY ── */
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--overlay-bg); display: none; opacity: 0;
-            justify-content: center; align-items: center; z-index: 100;
-            transition: opacity 0.3s ease;
-        }
-        .overlay.visible { opacity: 1; }
-        .admin-panel {
-            background-color: var(--surface); padding: 40px; border-radius: 25px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 450px;
-            transition: background 0.4s;
-            transform: scale(0.9);
-            transition: transform 0.3s ease, background 0.4s;
-        }
-        .overlay.visible .admin-panel { transform: scale(1); }
-        .admin-panel__title { margin-top: 0; color: var(--text-primary); font-size: 2em; margin-bottom: 25px; }
-        .admin-panel__input-group { justify-content: space-between; margin-bottom: 20px; }
+#btn-continuar {
+  align-self: flex-end;
+  font-family: var(--pixel);
+  font-size: 11px;
+  background: var(--verde);
+  color: var(--blanco);
+  padding: 14px 28px;
+  border-radius: 4px;
+  box-shadow: 0 5px 0 var(--verde-oscuro);
+  transition: transform 0.1s, box-shadow 0.1s;
+  margin-top: 4px;
+}
+#btn-continuar:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--verde-oscuro);
+}
 
-        /* ── PASSWORD OVERLAY ── */
-        .password-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--overlay-bg); display: none; opacity: 0;
-            justify-content: center; align-items: center; z-index: 101;
-            transition: opacity 0.3s ease;
-        }
-        .password-overlay.visible { opacity: 1; }
-        .password-panel {
-            background-color: var(--surface); padding: 30px; border-radius: 15px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.3); text-align: center; width: 80%; max-width: 350px;
-            transform: scale(0.9);
-            transition: transform 0.3s ease, background 0.4s;
-        }
-        .password-overlay.visible .password-panel { transform: scale(1); }
-        .password-panel__title { margin-top: 0; color: var(--text-primary); font-size: 1.5em; margin-bottom: 20px; }
-        .password-panel__input {
-            width: calc(100% - 20px); padding: 10px; margin-bottom: 20px;
-            border: 1px solid var(--border); border-radius: 5px; font-size: 1em;
-            background: var(--surface); color: var(--text-primary);
-            transition: background 0.4s, color 0.4s;
-        }
-        .password-panel__buttons { display: flex; justify-content: center; gap: 15px; }
+/* ══════════════════════════════════════════════════
+   ░░░  PANTALLA CÁMARA  ░░░
+══════════════════════════════════════════════════ */
+#pantalla-camara {
+  background: #080c0a;
+  flex-direction: row;
+  align-items: stretch;
+}
 
-        /* ── MISC ── */
-        .hidden { display: none; }
-        .percentage-text { text-align: center; margin-top: 8px; font-weight: bold; color: var(--text-primary); }
-        .error-message { color: var(--red); font-weight: bold; margin-bottom: 20px; text-align: center; font-size: 1.1em; }
+/* Columna izquierda: cámara */
+.cam-col-izq {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: #000;
+}
 
-        .admin-mode-button {
-            display: none; margin-top: 20px; padding: 15px 30px; font-size: 1.2em;
-            font-weight: bold; background-color: #28a745; color: white; border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .admin-mode-button:hover { background-color: #218838; transform: translateY(-3px) scale(1.05); box-shadow: 0 8px 18px rgba(0,0,0,0.25); }
+/* STATUS BAR superior */
+.cam-status-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 36px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.85), rgba(0,0,0,0.6));
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 10px;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
 
-        /* ── SPINNER ── */
-        #loading-spinner {
-            display: none;
-            opacity: 0;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-            gap: 12px;
-            transition: opacity 0.3s ease;
-        }
-        #loading-spinner.visible { opacity: 1; }
-        .spinner {
-            width: 50px; height: 50px;
-            border: 5px solid #d0e8f5;
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #loading-spinner p { color: var(--text-secondary); font-size: 1em; margin: 0; transition: color 0.4s; }
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--rojo);
+  animation: none;
+  flex-shrink: 0;
+}
+.status-dot.grabando {
+  background: var(--rojo);
+  animation: grabando 1s ease-in-out infinite;
+}
+.status-dot.foto-tomada {
+  background: var(--verde-claro);
+  animation: none;
+}
+@keyframes grabando {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
 
-        /* ── TOAST NOTIFICATIONS ── */
-        #toast-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 99999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            pointer-events: none;
-        }
-        .toast {
-            background: var(--surface);
-            color: var(--text-primary);
-            padding: 12px 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px var(--shadow);
-            font-size: 0.95em;
-            font-family: 'Roboto', sans-serif;
-            max-width: 320px;
-            border-left: 4px solid var(--accent);
-            animation: toastIn 0.3s ease forwards;
-            pointer-events: auto;
-            transition: background 0.4s, color 0.4s;
-        }
-        .toast.toast--error { border-left-color: var(--red); }
-        .toast.toast--success { border-left-color: var(--green); }
-        .toast.toast--warning { border-left-color: #f39c12; }
-        .toast.toast-out { animation: toastOut 0.3s ease forwards; }
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateX(60px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes toastOut {
-            from { opacity: 1; transform: translateX(0); }
-            to   { opacity: 0; transform: translateX(60px); }
-        }
+.status-label {
+  font-family: var(--pixel);
+  font-size: 8px;
+  color: rgba(255,255,255,0.8);
+  letter-spacing: 1px;
+}
 
-        /* ── SALVAPANTALLAS ── */
-        #screensaver {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #000;
-            z-index: 999999;
-            overflow: hidden;
-            cursor: none;
-        }
-        #screensaver.active { display: block; }
+.cam-gear-btn {
+  margin-left: auto;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  width: 28px; height: 28px;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  transition: background 0.2s;
+}
+.cam-gear-btn:active { background: rgba(255,255,255,0.25); }
 
-        /* Fondo estrellado animado */
-        #screensaver-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-        }
+/* Vista de cámara */
+.cam-vista {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  margin-top: 36px;
+}
 
-        .ss-logo {
-            position: absolute;
-            top: 28px;
-            left: 28px;
-            z-index: 3;
-            opacity: 0;
-            animation: ssLogoFade 1.2s ease 0.6s forwards;
-        }
-        .ss-logo img {
-            height: 120px; /* <--- Aumentamos el tamaño (antes era 64px) */
-            width: auto;
-            /* Quitamos el filtro destructivo para que se vean los colores reales del logo, pero dejamos la sombra azul brillante */
-            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.8)); 
-        }
-        @keyframes ssLogoFade {
-            from { opacity: 0; transform: translateY(-8px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+#camera-stream {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
-        /* Contenido central del salvapantallas */
-        .ss-center {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: #fff;
-            pointer-events: none;
-            animation: ssPulse 3s ease-in-out infinite;
-            z-index: 2;
-        }
-        .ss-icon {
-            font-size: 6em;
-            display: block;
-            margin-bottom: 16px;
-            animation: ssFloat 4s ease-in-out infinite;
-            filter: drop-shadow(0 0 30px rgba(52,152,219,0.8));
-        }
-        .ss-title {
-            font-family: 'Roboto', sans-serif;
-            font-size: 2.2em;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-shadow: 0 0 30px rgba(52,152,219,0.9), 0 0 60px rgba(52,152,219,0.5);
-            margin-bottom: 12px;
-            background: linear-gradient(90deg, #3498db, #2ecc71, #9b59b6, #3498db);
-            background-size: 300% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: ssGradient 4s linear infinite;
-        }
-        .ss-subtitle {
-            font-family: 'Roboto', sans-serif;
-            font-size: 1em;
-            font-weight: 300;
-            color: rgba(255,255,255,0.5);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .ss-hint {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-family: 'Roboto', sans-serif;
-            font-size: 0.85em;
-            color: rgba(255,255,255,0.3);
-            letter-spacing: 1px;
-            animation: ssBlink 2s ease-in-out infinite;
-        }
+#frozen-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  z-index: 5;
+}
 
-        /* Orbes flotantes decorativos */
-        .ss-orb {
-            position: absolute;
-            border-radius: 50%;
-            pointer-events: none;
-            filter: blur(60px);
-            opacity: 0.15;
-            animation: ssOrb linear infinite;
-        }
+/* Laser scanner */
+#laser-scanner {
+  display: none;
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #00ff88 30%, #fff 50%, #00ff88 70%, transparent 100%);
+  box-shadow: 0 0 16px #00ff88, 0 0 4px #fff;
+  z-index: 6;
+  animation: laserScan 1.6s ease-in-out infinite;
+}
+@keyframes laserScan {
+  0%   { top: 0%; }
+  50%  { top: calc(100% - 3px); }
+  100% { top: 0%; }
+}
 
-        @keyframes ssFloat {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50%       { transform: translateY(-18px) scale(1.05); }
-        }
-        @keyframes ssPulse {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.85; }
-        }
-        @keyframes ssGradient {
-            0%   { background-position: 0% center; }
-            100% { background-position: 300% center; }
-        }
-        @keyframes ssBlink {
-            0%, 100% { opacity: 0.3; }
-            50%       { opacity: 0.7; }
-        }
-        @keyframes ssOrb {
-            0%   { transform: translate(0, 0) scale(1); }
-            33%  { transform: translate(60px, -80px) scale(1.2); }
-            66%  { transform: translate(-40px, 50px) scale(0.9); }
-            100% { transform: translate(0, 0) scale(1); }
-        }
+/* Overlay "sin cámara" */
+.cam-sin-conexion {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: #0a0f0a;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 4;
+}
+.cam-sin-conexion.visible { display: flex; }
+.cam-sin-conexion .pixel { font-size: 9px; color: rgba(255,255,255,0.3); text-align: center; line-height: 1.8; }
+.cam-sin-conexion .icono { font-size: 48px; }
 
-        /* ── FRAME CONGELADO (reemplaza el stream durante predicción) ── */
-        #frozen-canvas {
-            display: none;
-            width: 100%;
-            height: auto;
-            border-radius: 12px;
-            position: absolute;
-            top: 0; left: 0;
-            z-index: 2;
-        }
+/* Columna derecha: canecas + jagua */
+.cam-col-der {
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #0d1b0f 0%, #111e13 100%);
+  border-left: 2px solid rgba(79,196,114,0.15);
+  overflow: hidden;
+}
 
-        /* ── CONFETTI ── */
-        #confetti-container {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 99998;
-            overflow: hidden;
-        }
-        .confetti-piece {
-            position: absolute;
-            top: -10px;
-            width: 10px; height: 14px;
-            border-radius: 2px;
-            animation: confettiFall linear forwards;
-        }
-        @keyframes confettiFall {
-            0%   { transform: translateY(0) rotate(0deg) scaleX(1); opacity: 1; }
-            80%  { opacity: 1; }
-            100% { transform: translateY(110vh) rotate(720deg) scaleX(-1); opacity: 0; }
-        }
-        /* ── REDISEÑO DE RESULTADOS Y ANIMACIONES ── */
-        @keyframes popIn {
-            0% { transform: scale(0); opacity: 0; }
-            70% { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
-        }
+/* Área de Jaguapanela (guía lateral) */
+.jagua-guia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 8px;
+  gap: 8px;
+  border-bottom: 2px dashed rgba(79,196,114,0.2);
+  flex-shrink: 0;
+}
 
-        .pop-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            font-size: 3rem;
-            color: white;
-            margin: 15px auto;
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        .pop-icon--correct { background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 0 20px rgba(46,204,113,0.5); }
-        .pop-icon--incorrect { background: linear-gradient(135deg, #e74c3c, #c0392b); box-shadow: 0 0 20px rgba(231,76,60,0.5); }
+.burbuja-cam {
+  background: var(--crema);
+  color: var(--negro);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border-bottom-right-radius: 4px;
+  max-width: 240px;
+  text-align: center;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+  transition: all 0.3s ease;
+}
 
-        .caneca-badge {
-            display: inline-block;
-            padding: 6px 18px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: white;
-            margin: 10px 0 20px 0;
-            text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .badge-blanca { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .badge-negra { background: linear-gradient(135deg, #7f8c8d, #2c3e50); }
-        .badge-verde { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-        .badge-fondo { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+/* Área de selección de canecas */
+.canecas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 8px;
+  overflow-y: auto;
+}
 
-        /* Contenedor de Gráficas de Barras Grandes */
-        .chart-container {
-            margin: 25px auto;
-            max-width: 380px;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.05), 0 10px 25px rgba(0,0,0,0.05);
-        }
-        .chart-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin: 14px 0;
-        }
-        .chart-label { width: 70px; font-weight: 700; text-align: left; font-size: 0.9rem; color: #34495e; }
-        .chart-bar-bg { flex: 1; background: rgba(0,0,0,0.08); border-radius: 8px; height: 18px; overflow: hidden; position: relative; }
-        .chart-bar-fill { height: 100%; border-radius: 8px; width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+.canecas-titulo {
+  font-family: var(--pixel);
+  font-size: 8px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 4px 0;
+}
 
-        .fill-blanca { background: linear-gradient(90deg, #5dade2, #2980b9); }
-        .fill-negra { background: linear-gradient(90deg, #bdc3c7, #2c3e50); }
-        .fill-verde { background: linear-gradient(90deg, #58d68d, #27ae60); }
-        .fill-fondo { background: linear-gradient(90deg, #af7ac5, #8e44ad); }
-        .chart-value { width: 50px; text-align: right; font-weight: 700; font-size: 0.9rem; color: #2c3e50; }
+.caneca-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: rgba(255,255,255,0.04);
+  transition: all 0.18s ease;
+  position: relative;
+  overflow: hidden;
+}
 
-        /* Capa del conteo regresivo */
-        #countdown-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.92);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        #countdown-overlay.active { opacity: 1; pointer-events: auto; }
-        #countdown-text {
-            font-size: 9rem;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 0 40px #3498db;
-            transform: scale(0.5);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+.caneca-btn::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+  background: var(--c-color, #555);
+  transition: width 0.2s;
+}
 
-        /* Modificación de contenedor para congelar fotograma */
-        .camera-card { position: relative; overflow: hidden; }
-        #frozen-canvas {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: none;
-            z-index: 10;
-            object-fit: cover;
-            border-radius: inherit;
-        }
-    </style>
+.caneca-btn:active {
+  transform: scale(0.97);
+}
+
+.caneca-btn.deshabilitada {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.caneca-btn[data-caneca="canecaBlanca"] { --c-color: var(--c-blanca); }
+.caneca-btn[data-caneca="canecaNegra"]  { --c-color: var(--c-negra); }
+.caneca-btn[data-caneca="canecaVerde"]  { --c-color: var(--c-verde); }
+
+.caneca-btn:active::before { width: 8px; }
+
+.caneca-btn-icono {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.caneca-btn-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.caneca-btn-nombre {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--blanco);
+}
+.caneca-btn-tipo {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  font-weight: 600;
+}
+
+/* Error de canecas */
+.canecas-error {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+}
+.canecas-error.visible { display: flex; }
+.canecas-error .pixel { font-size: 8px; color: var(--rojo); line-height: 1.8; }
+.canecas-error .icono { font-size: 36px; }
+
+#btn-reintentar {
+  font-family: var(--pixel);
+  font-size: 8px;
+  background: var(--rojo);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 4px;
+  box-shadow: 0 3px 0 #9b0000;
+}
+
+/* ══════════════════════════════════════════════════
+   ░░░  OVERLAY: ANALIZANDO  ░░░
+══════════════════════════════════════════════════ */
+#overlay-analizando {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 500;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+#overlay-analizando.activo { display: flex; }
+
+.spinner-pixel {
+  width: 48px; height: 48px;
+  border: 5px solid rgba(255,255,255,0.1);
+  border-top-color: var(--amarillo);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.analizando-texto {
+  font-family: var(--pixel);
+  font-size: 10px;
+  color: var(--amarillo);
+  text-align: center;
+  line-height: 2;
+}
+
+/* ══════════════════════════════════════════════════
+   ░░░  PANTALLA RESULTADO  ░══
+══════════════════════════════════════════════════ */
+#pantalla-resultado {
+  background: linear-gradient(135deg, #080c0a 0%, #0d1b0f 100%);
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* Foto congelada a la izquierda */
+.resultado-foto-col {
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  gap: 16px;
+  border-right: 2px solid rgba(79,196,114,0.15);
+  flex-shrink: 0;
+}
+
+.foto-capturada {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 3px solid rgba(255,255,255,0.1);
+  display: block;
+}
+
+.resultado-foto-label {
+  font-family: var(--pixel);
+  font-size: 8px;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* Barra de confianza debajo de la foto */
+.barras-confianza {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.barra-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.barra-etiqueta {
+  font-size: 11px;
+  font-weight: 800;
+  width: 52px;
+  color: rgba(255,255,255,0.7);
+  flex-shrink: 0;
+}
+.barra-track {
+  flex: 1;
+  height: 12px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.barra-fill {
+  height: 100%;
+  border-radius: 6px;
+  width: 0%;
+  transition: width 0.9s cubic-bezier(0.4,0,0.2,1);
+}
+.barra-fill.blanca { background: linear-gradient(90deg, #1976d2, #64b5f6); }
+.barra-fill.negra  { background: linear-gradient(90deg, #37474f, #90a4ae); }
+.barra-fill.verde  { background: linear-gradient(90deg, #2e7d32, #66bb6a); }
+.barra-fill.fondo  { background: linear-gradient(90deg, #6a1b9a, #ba68c8); }
+.barra-fill.ganador { box-shadow: 0 0 10px currentColor; }
+
+.barra-pct {
+  font-size: 11px;
+  font-weight: 800;
+  width: 36px;
+  text-align: right;
+  color: rgba(255,255,255,0.6);
+  flex-shrink: 0;
+}
+
+/* Columna derecha del resultado */
+.resultado-info-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px;
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* Chip correcto/incorrecto */
+.resultado-veredicto {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.veredicto-icono {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  flex-shrink: 0;
+}
+.veredicto-icono.correcto  { background: rgba(46,204,113,0.2); border: 3px solid #2ecc71; }
+.veredicto-icono.incorrecto{ background: rgba(229,57,53,0.2);  border: 3px solid #e53935; }
+
+@keyframes popIn {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.veredicto-texto {
+  display: flex;
+  flex-direction: column;
+}
+.veredicto-label {
+  font-family: var(--pixel);
+  font-size: 16px;
+  line-height: 1.3;
+}
+.veredicto-label.correcto  { color: #4caf50; text-shadow: 2px 2px 0 #1b5e20; }
+.veredicto-label.incorrecto{ color: #ef5350; text-shadow: 2px 2px 0 #7f0000; }
+
+.veredicto-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Badge de caneca detectada */
+.caneca-detectada-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 900;
+  border-width: 2px;
+  border-style: solid;
+  max-width: fit-content;
+}
+.caneca-detectada-badge.blanca { background: rgba(33,150,243,0.15); border-color: #1976d2; color: #64b5f6; }
+.caneca-detectada-badge.negra  { background: rgba(69,90,100,0.25);  border-color: #455a64; color: #b0bec5; }
+.caneca-detectada-badge.verde  { background: rgba(67,160,71,0.15);  border-color: #388e3c; color: #81c784; }
+.caneca-detectada-badge.fondo  { background: rgba(149,117,205,0.15);border-color: #7b1fa2; color: #ce93d8; }
+
+/* Descripción */
+.resultado-desc {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.6;
+  border-left: 3px solid var(--verde);
+  padding-left: 12px;
+  flex-shrink: 0;
+}
+
+/* Jagua resultado */
+.resultado-jagua-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.burbuja-resultado {
+  background: var(--crema);
+  color: var(--negro);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+  line-height: 1.45;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+  max-width: 220px;
+}
+
+/* Botones resultado */
+.resultado-botones {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-resultado {
+  font-family: var(--pixel);
+  font-size: 9px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  transition: transform 0.1s, box-shadow 0.1s;
+  line-height: 1.5;
+}
+.btn-resultado:active { transform: translateY(3px); }
+
+.btn-volver {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+.btn-escanear-otro {
+  background: var(--verde);
+  color: white;
+  box-shadow: 0 4px 0 var(--verde-oscuro);
+}
+.btn-escanear-otro:active { box-shadow: 0 1px 0 var(--verde-oscuro); }
+
+/* ══════════════════════════════════════════════════
+   ░░░  PANEL CONFIGURACIÓN (oculto)  ░░░
+══════════════════════════════════════════════════ */
+#overlay-config {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 800;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#overlay-config.activo { display: flex; }
+
+.config-panel {
+  background: #1a2e1c;
+  border: 2px solid var(--verde);
+  border-radius: 16px;
+  padding: 28px;
+  width: 680px;
+  max-height: 540px;
+  overflow-y: auto;
+}
+
+.config-titulo {
+  font-family: var(--pixel);
+  font-size: 12px;
+  color: var(--amarillo);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.config-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.config-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.config-input, .config-select {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: white;
+  padding: 8px 10px;
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 700;
+  width: 100%;
+}
+
+.config-separador {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 4px 0;
+}
+
+.config-fila-full { grid-column: 1 / -1; }
+
+.config-botones {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.btn-config {
+  font-family: var(--pixel);
+  font-size: 9px;
+  padding: 10px 20px;
+  border-radius: 6px;
+}
+.btn-config-cerrar {
+  background: rgba(255,255,255,0.1);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-config-guardar {
+  background: var(--verde);
+  color: white;
+  box-shadow: 0 3px 0 var(--verde-oscuro);
+}
+
+/* ══════════════════════════════════════════════════
+   ░░░  CONFETTI  ░░░
+══════════════════════════════════════════════════ */
+#confetti-container {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 900;
+  overflow: hidden;
+}
+.confetti-pieza {
+  position: absolute;
+  top: -12px;
+  width: 10px; height: 14px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════════
+   ░░░  TOAST  ░░░
+══════════════════════════════════════════════════ */
+#toast-container {
+  position: fixed;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: rgba(20,30,22,0.95);
+  border: 2px solid var(--verde);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-family: var(--pixel);
+  font-size: 9px;
+  color: white;
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+  text-align: center;
+  animation: toastIn 0.3s ease both;
+  pointer-events: auto;
+}
+.toast.error   { border-color: var(--rojo); }
+.toast.exito   { border-color: var(--verde-claro); }
+.toast.saliendo { animation: toastOut 0.3s ease forwards; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(20px); }
+}
+
+/* ══════════════════════════════════════════════════
+   ░░░  JAGUAPANELA SVG — estilos de estado  ░░░
+══════════════════════════════════════════════════ */
+.jagua-idle .jagua-ojo-izq,
+.jagua-idle .jagua-ojo-der {
+  animation: parpadear 4s ease-in-out infinite;
+}
+@keyframes parpadear {
+  0%, 45%, 55%, 100% { transform: scaleY(1); }
+  50%                { transform: scaleY(0.1); }
+}
+
+.jagua-hablar .jagua-boca {
+  animation: hablar 0.25s ease-in-out infinite alternate;
+}
+@keyframes hablar {
+  from { d: path("M 22 36 Q 32 40 42 36"); }
+  to   { d: path("M 22 36 Q 32 44 42 36"); }
+}
+
+.jagua-feliz .jagua-cuerpo {
+  animation: saltar 0.5s ease-in-out infinite alternate;
+}
+@keyframes saltar {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-6px); }
+}
+
+/* ══════════════════════════════════════════════════
+   SCROLLBAR mínimo
+══════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(79,196,114,0.3); border-radius: 4px; }
+</style>
 </head>
 <body>
-    <!-- ── OVERLAY "JUGAR UN JUEGO" — placeholder con countdown ── -->
-    <div id="game-overlay">
-        <div class="game-overlay-box">
-            <span class="game-overlay-icon">🎮</span>
-            <div class="game-overlay-title">¡Jugar un Juego!</div>
-            <div class="game-overlay-sub">Próximamente… volviendo a la cámara en</div>
-            <div class="game-overlay-countdown" id="game-countdown">4</div>
+
+<!-- ══════════════════════════════════════════════
+     CONFETTI & TOAST (globales)
+══════════════════════════════════════════════ -->
+<div id="confetti-container"></div>
+<div id="toast-container"></div>
+
+<!-- ══════════════════════════════════════════════
+     PANTALLA 1: SALVAPANTALLAS
+══════════════════════════════════════════════ -->
+<div id="pantalla-ss" class="pantalla activa">
+  <canvas id="ss-canvas"></canvas>
+
+  <div class="ss-contenido">
+    <!-- Jaguapanela grande en SS -->
+    <div class="ss-jagua-wrap" id="jagua-ss"></div>
+
+    <div class="ss-titulo">CAM·CAN</div>
+    <div class="ss-subtitulo">Clasificador inteligente de canecas</div>
+
+    <button id="btn-escanear" onclick="irAInstrucciones()">
+      ▶ ESCANEAR
+    </button>
+  </div>
+
+  <div class="ss-hint pixel">TOCA ESCANEAR PARA COMENZAR</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PANTALLA 2: INSTRUCCIONES
+══════════════════════════════════════════════ -->
+<div id="pantalla-instrucciones" class="pantalla">
+  <div class="instruc-jagua-col">
+    <div id="jagua-instrucciones"></div>
+    <div class="burbuja-texto" id="burbuja-instrucciones">
+      ¡Hola! Soy Jaguapanela 🐆<br>¡Te voy a enseñar a reciclar bien!
+    </div>
+  </div>
+
+  <div class="instruc-pasos-col">
+    <div class="instruc-titulo">¿Cómo funciona?</div>
+
+    <div class="paso">
+      <div class="paso-num">1</div>
+      <div class="paso-info">
+        <div class="paso-titulo">📦 Ten tu residuo listo</div>
+        <div class="paso-desc">Sostén el objeto que quieres clasificar frente a la cámara.</div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">2</div>
+      <div class="paso-info">
+        <div class="paso-titulo">📷 Mira la cámara en vivo</div>
+        <div class="paso-desc">Verás lo que graba la cámara en tiempo real a la izquierda.</div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">3</div>
+      <div class="paso-info">
+        <div class="paso-titulo">♻️ Selecciona una caneca</div>
+        <div class="paso-desc">Elige en qué caneca crees que va tu residuo. La IA tomará la foto en ese momento y te dirá si acertaste.</div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">4</div>
+      <div class="paso-info">
+        <div class="paso-titulo">✅ ¡Mira el resultado!</div>
+        <div class="paso-desc">Aprende con la explicación de Jaguapanela.</div>
+      </div>
+    </div>
+
+    <button id="btn-continuar" onclick="irACamera()">
+      ¡ENTENDIDO, COMENZAR! ▶
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PANTALLA 3: CÁMARA
+══════════════════════════════════════════════ -->
+<div id="pantalla-camara" class="pantalla">
+
+  <!-- Columna izquierda: vista de cámara -->
+  <div class="cam-col-izq">
+    <!-- Barra de estado superior -->
+    <div class="cam-status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-label pixel" id="status-label">CONECTANDO...</span>
+      <button class="cam-gear-btn" onclick="abrirConfig()" title="Configuración">⚙️</button>
+    </div>
+
+    <!-- Vista de cámara -->
+    <div class="cam-vista">
+      <img id="camera-stream" src="/video/stream" alt=""
+           onload="onStreamLoad()" onerror="onStreamError()">
+      <canvas id="frozen-canvas"></canvas>
+      <div id="laser-scanner"></div>
+
+      <!-- Overlay sin conexión -->
+      <div class="cam-sin-conexion" id="cam-sin-conexion">
+        <div class="icono">📷</div>
+        <div class="pixel">
+          CÁMARA NO DISPONIBLE<br><br>
+          Verifica que el ESP32<br>
+          esté encendido y conectado<br>
+          a la red WiFi
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha: Jaguapanela + canecas -->
+  <div class="cam-col-der">
+    <!-- Jaguapanela guía -->
+    <div class="jagua-guia">
+      <div id="jagua-camara"></div>
+      <div class="burbuja-cam" id="burbuja-camara">
+        Coloca el residuo frente a la cámara y elige en qué caneca va 👇
+      </div>
     </div>
 
-    <!-- ── SALVAPANTALLAS ── -->
-    <div id="screensaver">
-        <canvas id="screensaver-canvas"></canvas>
-        <!-- Logo ETITC arriba izquierda -->
-        <div class="ss-logo">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/0/03/ETITC.png" alt="ETITC" onerror="this.style.display='none'">
+    <!-- Canecas -->
+    <div class="canecas-area" id="canecas-area">
+      <div class="canecas-titulo pixel">— SELECCIONA LA CANECA —</div>
+
+      <button class="caneca-btn" data-caneca="canecaBlanca"
+              onclick="seleccionarCaneca('canecaBlanca')">
+        <span class="caneca-btn-icono">🔵</span>
+        <div class="caneca-btn-info">
+          <div class="caneca-btn-nombre">Caneca Blanca</div>
+          <div class="caneca-btn-tipo">Reciclables · Plástico, vidrio, metal, papel</div>
         </div>
-        <!-- Orbes de color de fondo -->
-        <div class="ss-orb" style="width:500px;height:500px;background:#3498db;top:-100px;left:-100px;animation-duration:18s;"></div>
-        <div class="ss-orb" style="width:400px;height:400px;background:#2ecc71;bottom:-80px;right:-80px;animation-duration:22s;animation-delay:-8s;"></div>
-        <div class="ss-orb" style="width:350px;height:350px;background:#9b59b6;top:40%;left:60%;animation-duration:15s;animation-delay:-4s;"></div>
-        <!-- Contenido central -->
-        <div class="ss-center">
-            <span class="ss-icon">♻️</span>
-            <div class="ss-title">Basurero Tutor con IA</div>
-            <div class="ss-subtitle">Clasificador inteligente de residuos</div>
+      </button>
+
+      <button class="caneca-btn" data-caneca="canecaNegra"
+              onclick="seleccionarCaneca('canecaNegra')">
+        <span class="caneca-btn-icono">⚫</span>
+        <div class="caneca-btn-info">
+          <div class="caneca-btn-nombre">Caneca Negra</div>
+          <div class="caneca-btn-tipo">No aprovechables · Icopor, residuos sanitarios</div>
         </div>
-        <div class="ss-hint">Toca cualquier tecla o mueve el mouse para continuar</div>
-    </div>
+      </button>
 
-    <!-- Dark mode toggle -->
-    <button id="dark-mode-btn" title="Alternar modo oscuro">🌙</button>
-
-    <!-- Toast container -->
-    <div id="toast-container"></div>
-
-    <!-- Confetti container -->
-    <div id="confetti-container"></div>
-
-    <div id="panel-consejo-lateral">
-        <strong>💡 Consejo de reciclaje</strong>
-        <span id="texto-consejo-lateral">Reciclar reduce la cantidad de residuos que llegan a los rellenos sanitarios.</span>
-    </div>
-
-    <div id="debug-panel"></div>
-
-    <div id="model-error" class="error-message hidden">
-        ⚠ Error al conectar con el servidor de predicción. Verifica la conexión.
-    </div>
-
-    <div class="camera-container" id="camera-container">
-        <img class="camera-container__stream" id="camera-stream" src="" alt="Cámara aquí">
-        <!-- Canvas para congelar el frame cuando se selecciona una caneca -->
-        <canvas id="frozen-canvas"></canvas>
-        <div id="laser-scanner"></div>
-        <button class="config-button" id="config-button">⚙️</button>
-    </div>
-
-    <div class="config-section" id="configSection">
-        <h2>Configuración de la Cámara</h2>
-        <p>Ajustes de la cámara y otros parámetros.</p>
-        <nav class="menu" id="menu">
-            <section id="xclk-section" class="nothidden">
-                <div class="menu__input-group" id="set-xclk-group">
-                    <label for="xclk">XCLK MHz</label>
-                    <div class="text"><input id="xclk" type="text" minlength="1" maxlength="2" size="2" value="20" class="menu__text-input"></div>
-                    <button class="button button--inline" id="set-xclk">Set</button>
-                </div>
-            </section>
-            <div class="menu__input-group" id="framesize-group">
-                <label for="framesize">Resolution</label>
-                <select id="framesize" class="default-action menu__input-group__select">
-                    <option value="13">UXGA(1600x1200)</option><option value="12">SXGA(1280x1024)</option>
-                    <option value="11">HD(1280x720)</option><option value="10">XGA(1024x768)</option>
-                    <option value="9">SVGA(800x600)</option><option value="8" selected>VGA(640x480)</option>
-                    <option value="7">HVGA(480x320)</option><option value="6">CIF(400x296)</option>
-                    <option value="5">QVGA(320x240)</option><option value="4">240x240</option>
-                    <option value="3">HQVGA(240x176)</option><option value="2">QCIF(176x144)</option>
-                    <option value="1">QQVGA(160x120)</option><option value="0">96x96</option>
-                </select>
-            </div>
-            <div class="menu__input-group" id="quality-group"><label for="quality">Quality</label><div class="menu__range-min">4</div><input type="range" id="quality" min="4" max="63" value="5" class="default-action menu__range-input"><div class="menu__range-max">63</div></div>
-            <div class="menu__input-group" id="brightness-group"><label for="brightness">Brightness</label><div class="menu__range-min">-2</div><input type="range" id="brightness" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
-            <div class="menu__input-group" id="contrast-group"><label for="contrast">Contrast</label><div class="menu__range-min">-2</div><input type="range" id="contrast" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
-            <div class="menu__input-group" id="saturation-group"><label for="saturation">Saturation</label><div class="menu__range-min">-2</div><input type="range" id="saturation" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
-            <div class="menu__input-group" id="special_effect-group">
-                <label for="special_effect">Special Effect</label>
-                <select id="special_effect" class="default-action menu__input-group__select">
-                    <option value="0" selected>No Effect</option><option value="1">Negative</option>
-                    <option value="2">Grayscale</option><option value="3">Red Tint</option>
-                    <option value="4">Green Tint</option><option value="5">Blue Tint</option><option value="6">Sepia</option>
-                </select>
-            </div>
-            <div class="menu__input-group" id="awb-group"><label for="awb">AWB</label><div class="switch"><input id="awb" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="awb"></label></div></div>
-            <div class="menu__input-group" id="awb_gain-group"><label for="awb_gain">AWB Gain</label><div class="switch"><input id="awb_gain" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="awb_gain"></label></div></div>
-            <div class="menu__input-group" id="wb_mode-group"><label for="wb_mode">WB Mode</label><select id="wb_mode" class="default-action menu__input-group__select"><option value="0" selected>Auto</option><option value="1">Sunny</option><option value="2">Cloudy</option><option value="3">Office</option><option value="4">Home</option></select></div>
-            <div class="menu__input-group" id="aec-group"><label for="aec">AEC SENSOR</label><div class="switch"><input id="aec" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="aec"></label></div></div>
-            <div class="menu__input-group" id="aec2-group"><label for="aec2">AEC DSP</label><div class="switch"><input id="aec2" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="aec2"></label></div></div>
-            <div class="menu__input-group" id="ae_level-group"><label for="ae_level">AE Level</label><div class="menu__range-min">-2</div><input type="range" id="ae_level" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
-            <div class="menu__input-group" id="aec_value-group"><label for="aec_value">Exposure</label><div class="menu__range-min">0</div><input type="range" id="aec_value" min="0" max="1200" value="204" class="default-action menu__range-input"><div class="menu__range-max">1200</div></div>
-            <div class="menu__input-group" id="agc-group"><label for="agc">AGC</label><div class="switch"><input id="agc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="agc"></label></div></div>
-            <div class="menu__input-group hidden" id="agc_gain-group"><label for="agc_gain">Gain</label><div class="menu__range-min">1x</div><input type="range" id="agc_gain" min="0" max="30" value="5" class="default-action menu__range-input"><div class="menu__range-max">31x</div></div>
-            <div class="menu__input-group" id="gainceiling-group"><label for="gainceiling">Gain Ceiling</label><div class="menu__range-min">2x</div><input type="range" id="gainceiling" min="0" max="6" value="0" class="default-action menu__range-input"><div class="menu__range-max">128x</div></div>
-            <div class="menu__input-group" id="bpc-group"><label for="bpc">BPC</label><div class="switch"><input id="bpc" type="checkbox" class="default-action switch__input"><label class="switch__slider" for="bpc"></label></div></div>
-            <div class="menu__input-group" id="wpc-group"><label for="wpc">WPC</label><div class="switch"><input id="wpc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="wpc"></label></div></div>
-            <div class="menu__input-group" id="raw_gma-group"><label for="raw_gma">Raw GMA</label><div class="switch"><input id="raw_gma" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="raw_gma"></label></div></div>
-            <div class="menu__input-group" id="lenc-group"><label for="lenc">Lens Correction</label><div class="switch"><input id="lenc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="lenc"></label></div></div>
-            <div class="menu__input-group" id="hmirror-group"><label for="hmirror">H-Mirror</label><div class="switch"><input id="hmirror" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="hmirror"></label></div></div>
-            <div class="menu__input-group" id="vflip-group"><label for="vflip">V-Flip</label><div class="switch"><input id="vflip" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="vflip"></label></div></div>
-            <div class="menu__input-group" id="dcw-group"><label for="dcw">DCW (Downsize EN)</label><div class="switch"><input id="dcw" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="dcw"></label></div></div>
-            <div class="menu__input-group" id="colorbar-group"><label for="colorbar">Color Bar</label><div class="switch"><input id="colorbar" type="checkbox" class="default-action switch__input"><label class="switch__slider" for="colorbar"></label></div></div>
-            <div class="menu__input-group" id="led-group"><label for="led_intensity">LED Intensity</label><div class="menu__range-min">0</div><input type="range" id="led_intensity" min="0" max="255" value="0" class="default-action menu__range-input"><div class="menu__range-max">255</div></div>
-            <section id="buttons" class="hidden"></section>
-
-            <div style="margin-top:15px;"><center><span style="font-weight:bold;color:var(--text-primary);font-size:1.2em;">Advanced Settings</span></center></div>
-            <hr class="separator">
-            <label for="nav-toggle-reg" class="toggle-section-label">&#9776;&nbsp;&nbsp;Register Get/Set</label>
-            <input type="checkbox" id="nav-toggle-reg" class="hidden toggle-section-input" checked>
-            <section class="toggle-section">
-                <div class="menu__input-group" id="set-reg-group">
-                    <label for="set-reg">Reg, Mask, Value</label>
-                    <div class="text"><input id="reg-addr" type="text" minlength="4" maxlength="6" size="6" value="0x111" class="menu__text-input"></div>
-                    <div class="text"><input id="reg-mask" type="text" minlength="4" maxlength="4" size="4" value="0x80" class="menu__text-input"></div>
-                    <div class="text"><input id="reg-value" type="text" minlength="4" maxlength="4" size="4" value="0x80" class="menu__text-input"></div>
-                    <button class="button button--inline" id="set-reg">Set</button>
-                </div>
-                <hr class="separator" style="width:50%">
-                <div class="menu__input-group" id="get-reg-group">
-                    <label for="get-reg">Reg, Mask</label>
-                    <div class="text"><input id="get-reg-addr" type="text" minlength="4" maxlength="6" size="6" value="0x111" class="menu__text-input"></div>
-                    <div class="text"><input id="get-reg-mask" type="text" minlength="4" maxlength="6" size="6" value="0x80" class="menu__text-input"></div>
-                    <button class="button button--inline" id="get-reg">Get</button>
-                </div>
-                <div class="menu__input-group"><label for="get-reg-value">Value</label><div class="text"><span id="get-reg-value">0x1234</span></div></div>
-            </section>
-            <hr class="separator">
-            <label for="nav-toggle-2640pll" class="toggle-section-label">&#9776;&nbsp;&nbsp;CLK</label>
-            <input type="checkbox" id="nav-toggle-2640pll" class="hidden toggle-section-input" checked>
-            <section class="toggle-section">
-                <div class="menu__input-group"><label for="2640pll1">CLK 2X</label><div class="switch"><input id="2640pll1" type="checkbox" class="reg-action switch__input" reg="0x111" offset="7" mask="0x01"><label class="switch__slider" for="2640pll1"></label></div></div>
-                <div class="menu__input-group"><label for="2640pll3">CLK DIV</label><div class="text">0<input id="2640pll3" type="text" minlength="1" maxlength="2" size="2" value="1" class="reg-action menu__text-input" reg="0x111" offset="0" mask="0x3f">63</div></div>
-                <div class="menu__input-group"><label for="2640pll5">Auto PCLK</label><div class="switch"><input id="2640pll5" type="checkbox" class="reg-action switch__input" reg="0xd3" offset="7" mask="0x01"><label class="switch__slider" for="2640pll5"></label></div></div>
-                <div class="menu__input-group"><label for="2640pll4">PCLK DIV</label><div class="text">0<input id="2640pll4" type="text" minlength="1" maxlength="3" size="3" value="4" class="reg-action menu__text-input" reg="0xd3" offset="0" mask="0x7f">127</div></div>
-            </section>
-            <hr class="separator">
-            <label for="nav-toggle-win" class="toggle-section-label">&#9776;&nbsp;&nbsp;Window</label>
-            <input type="checkbox" id="nav-toggle-win" class="hidden toggle-section-input" checked>
-            <section class="toggle-section">
-                <div class="menu__input-group"><label for="start-x">Sensor Resolution</label><select id="start-x" class="menu__input-group__select"><option value="2">CIF (400x296)</option><option value="1">SVGA (800x600)</option><option value="0" selected>UXGA (1600x1200)</option></select></div>
-                <div class="menu__input-group" id="set-offset-res-group"><label for="offset-x">Offset</label><div class="text">X:<input id="offset-x" type="text" minlength="1" maxlength="3" size="6" value="400" class="menu__text-input"></div><div class="text">Y:<input id="offset-y" type="text" minlength="1" maxlength="3" size="6" value="300" class="menu__text-input"></div></div>
-                <div class="menu__input-group" id="set-total-res-group"><label for="total-x">Window Size</label><div class="text">X:<input id="total-x" type="text" minlength="1" maxlength="4" size="6" value="800" class="menu__text-input"></div><div class="text">Y:<input id="total-y" type="text" minlength="1" maxlength="4" size="6" value="600" class="menu__text-input"></div></div>
-                <div class="menu__input-group" id="set-output-res-group"><label for="output-x">Output Size</label><div class="text">X:<input id="output-x" type="text" minlength="1" maxlength="4" size="6" value="320" class="menu__text-input"></div><div class="text">Y:<input id="output-y" type="text" minlength="1" maxlength="4" size="6" value="240" class="menu__text-input"></div></div>
-                <button class="button" id="set-resolution">Set Resolution</button>
-            </section>
-        </nav>
-    </div>
-
-    <div class="overlay" id="config-overlay">
-        <div class="admin-panel" id="admin-config-panel">
-            <h2 class="admin-panel__title">Opción de Administrador</h2>
-            <div class="menu__input-group admin-panel__input-group">
-                <label for="admin-switch">Activar Funcionalidad</label>
-                <div class="switch"><input id="admin-switch" type="checkbox" class="switch__input"><label class="switch__slider" for="admin-switch"></label></div>
-            </div>
-            <button class="button" onclick="hideConfigOverlay()">Cerrar</button>
+      <button class="caneca-btn" data-caneca="canecaVerde"
+              onclick="seleccionarCaneca('canecaVerde')">
+        <span class="caneca-btn-icono">🟢</span>
+        <div class="caneca-btn-info">
+          <div class="caneca-btn-nombre">Caneca Verde</div>
+          <div class="caneca-btn-tipo">Orgánicos · Comida, jardín, restos naturales</div>
         </div>
-    </div>
+      </button>
 
-    <div class="password-overlay" id="password-overlay">
-        <div class="password-panel">
-            <h2 class="password-panel__title" id="password-panel-title"></h2>
-            <input type="password" id="password-input" class="password-panel__input" placeholder="Ingresa la contraseña">
-            <div class="password-panel__buttons">
-                <button class="button" id="password-submit">Aceptar</button>
-                <button class="button" id="password-cancel">Cancelar</button>
-            </div>
+      <!-- Error state -->
+      <div class="canecas-error" id="canecas-error">
+        <div class="icono">⚠️</div>
+        <div class="pixel">
+          ERROR DE CONEXIÓN<br><br>
+          No se puede conectar<br>
+          al servidor de IA
         </div>
-    </div>
-
-    <h2 id="caneca-question">¿En qué caneca crees que está?</h2>
-    <h3 class="caneca-question" id="caneca-question3">(Deposítala de tal modo que se vea en la cámara para realizar la predicción correctamente)</h3>
-    <div class="caneca-selection" id="caneca-selection">
-        <button class="caneca-button" data-caneca="canecaBlanca">
-            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_1.png" alt="Caneca Blanca" class="caneca-button__image">
-            <span class="caneca-button__text">Caneca Blanca</span>
+        <button id="btn-reintentar" class="pixel" onclick="reintentarConexion()">
+          REINTENTAR
         </button>
-        <button class="caneca-button" data-caneca="canecaNegra">
-            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_3.png" alt="Caneca Negra" class="caneca-button__image">
-            <span class="caneca-button__text">Caneca Negra</span>
-        </button>
-        <button class="caneca-button" data-caneca="canecaVerde">
-            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_2.png" alt="Caneca Verde" class="caneca-button__image">
-            <span class="caneca-button__text">Caneca Verde</span>
-        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PANTALLA 4: RESULTADO
+══════════════════════════════════════════════ -->
+<div id="pantalla-resultado" class="pantalla">
+  <!-- Foto capturada + barras -->
+  <div class="resultado-foto-col">
+    <canvas id="foto-capturada" class="foto-capturada"></canvas>
+    <div class="resultado-foto-label pixel">FOTO CAPTURADA</div>
+
+    <div class="barras-confianza" id="barras-confianza">
+      <div class="barra-row">
+        <span class="barra-etiqueta">Blanca</span>
+        <div class="barra-track"><div class="barra-fill blanca" id="barra-blanca" data-val="0"></div></div>
+        <span class="barra-pct" id="pct-blanca">0%</span>
+      </div>
+      <div class="barra-row">
+        <span class="barra-etiqueta">Negra</span>
+        <div class="barra-track"><div class="barra-fill negra" id="barra-negra" data-val="0"></div></div>
+        <span class="barra-pct" id="pct-negra">0%</span>
+      </div>
+      <div class="barra-row">
+        <span class="barra-etiqueta">Verde</span>
+        <div class="barra-track"><div class="barra-fill verde" id="barra-verde" data-val="0"></div></div>
+        <span class="barra-pct" id="pct-verde">0%</span>
+      </div>
+      <div class="barra-row">
+        <span class="barra-etiqueta">Fondo</span>
+        <div class="barra-track"><div class="barra-fill fondo" id="barra-fondo" data-val="0"></div></div>
+        <span class="barra-pct" id="pct-fondo">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info resultado -->
+  <div class="resultado-info-col">
+    <div class="resultado-veredicto">
+      <div class="veredicto-icono" id="veredicto-icono"></div>
+      <div class="veredicto-texto">
+        <div class="veredicto-label" id="veredicto-label"></div>
+        <div class="veredicto-sub" id="veredicto-sub"></div>
+      </div>
     </div>
 
-    <div id="loading-spinner">
-        <div class="spinner"></div>
-        <p id="loading-text">Analizando imagen con IA...</p>
+    <div class="caneca-detectada-badge" id="caneca-detectada-badge"></div>
+
+    <div class="resultado-desc" id="resultado-desc"></div>
+
+    <div class="resultado-jagua-row">
+      <div id="jagua-resultado"></div>
+      <div class="burbuja-resultado" id="burbuja-resultado"></div>
     </div>
 
-    <div class="prediction-result" id="prediction-result"></div>
-
-    <div id="panel-consejo-resultado">
-        <p id="texto-consejo-resultado"></p>
+    <div class="resultado-botones">
+      <button class="btn-resultado btn-volver" onclick="irASalvapantallas()">
+        ← INICIO
+      </button>
+      <button class="btn-resultado btn-escanear-otro" onclick="irACamera()">
+        ♻ CLASIFICAR OTRO
+      </button>
     </div>
+  </div>
+</div>
 
-    <div class="next-section" id="next-section">
-        <h3 class="next-section__title" id="next-section-title"></h3>
-        <p class="next-section__message" id="next-section-message"></p>
-        <div class="next-section__buttons">
-            <button class="button" id="play-again-button" onclick="resetUI()">Jugar de Nuevo</button>
-            <button class="button" id="learn-button" onclick="resetUI()">Volver al Menú</button>
+<!-- ══════════════════════════════════════════════
+     OVERLAY: ANALIZANDO
+══════════════════════════════════════════════ -->
+<div id="overlay-analizando">
+  <div id="jagua-analizando-wrap"></div>
+  <div class="spinner-pixel"></div>
+  <div class="analizando-texto" id="texto-analizando">
+    ANALIZANDO IMAGEN...<br>IA pensando...
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     OVERLAY: CONFIGURACIÓN
+══════════════════════════════════════════════ -->
+<div id="overlay-config">
+  <div class="config-panel">
+    <div class="config-titulo">⚙ CONFIGURACIÓN</div>
+    <div class="config-grid">
+      <div class="config-fila">
+        <label class="config-label">Resolución</label>
+        <select id="cfg-framesize" class="config-select">
+          <option value="13">UXGA (1600×1200)</option>
+          <option value="12">SXGA (1280×1024)</option>
+          <option value="11">HD (1280×720)</option>
+          <option value="9">SVGA (800×600)</option>
+          <option value="8" selected>VGA (640×480)</option>
+          <option value="5">QVGA (320×240)</option>
+        </select>
+      </div>
+      <div class="config-fila">
+        <label class="config-label">Calidad (4–63)</label>
+        <input type="range" id="cfg-quality" class="config-input" min="4" max="63" value="10">
+      </div>
+      <div class="config-separador"></div>
+      <div class="config-fila">
+        <label class="config-label">Brillo (-2 a 2)</label>
+        <input type="range" id="cfg-brightness" class="config-input" min="-2" max="2" value="0">
+      </div>
+      <div class="config-fila">
+        <label class="config-label">Contraste (-2 a 2)</label>
+        <input type="range" id="cfg-contrast" class="config-input" min="-2" max="2" value="0">
+      </div>
+      <div class="config-fila">
+        <label class="config-label">Saturación</label>
+        <input type="range" id="cfg-saturation" class="config-input" min="-2" max="2" value="0">
+      </div>
+      <div class="config-fila">
+        <label class="config-label">Espejo horizontal</label>
+        <select id="cfg-hmirror" class="config-select">
+          <option value="1" selected>Activado</option>
+          <option value="0">Desactivado</option>
+        </select>
+      </div>
+      <div class="config-fila">
+        <label class="config-label">Voltear vertical</label>
+        <select id="cfg-vflip" class="config-select">
+          <option value="1" selected>Activado</option>
+          <option value="0">Desactivado</option>
+        </select>
+      </div>
+      <div class="config-fila">
+        <label class="config-label">Intensidad LED (0–255)</label>
+        <input type="range" id="cfg-led" class="config-input" min="0" max="255" value="0">
+      </div>
+      <div class="config-separador"></div>
+      <div class="config-fila config-fila-full">
+        <label class="config-label">Reg / Máscara / Valor (hex)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="cfg-reg-addr" class="config-input" placeholder="0x111" value="0x111" style="flex:1;">
+          <input type="text" id="cfg-reg-mask" class="config-input" placeholder="0x80" value="0x80" style="flex:1;">
+          <input type="text" id="cfg-reg-val" class="config-input" placeholder="0x80" value="0x80" style="flex:1;">
         </div>
+      </div>
     </div>
+    <div class="config-botones">
+      <button class="btn-config btn-config-cerrar" onclick="cerrarConfig()">CANCELAR</button>
+      <button class="btn-config btn-config-guardar" onclick="guardarConfig()">GUARDAR Y APLICAR</button>
+    </div>
+  </div>
+</div>
 
-    <button class="button admin-mode-button" id="open-compartments-button">Abrir Compartimientos</button>
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+'use strict';
 
-    <script>
-    // ─────────────────────────────────────────────────────────────────────────
-    // DEBUG LOGGER
-    // ─────────────────────────────────────────────────────────────────────────
-    const debugPanel = document.getElementById('debug-panel');
-    function dbg(msg) {
-        console.log('[DBG]', msg);
-        const line = document.createElement('div');
-        line.textContent = '> ' + msg;
-        debugPanel.appendChild(line);
-        debugPanel.scrollTop = debugPanel.scrollHeight;
-    }
-    document.addEventListener('keydown', e => {
-        if (e.ctrlKey && e.key === 'd') {
-            e.preventDefault();
-            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
-        }
+/* ════════════════════════════════════════════════
+   JAGUAPANELA SVG — Pixel Art
+   Paleta: café oscuro #3d2010, marrón #7a4a1e,
+   naranja-café #c47a3a, crema #f5deb3,
+   negro #111, verde-olivo #556b2f (manchas jaguar),
+   ojos verdes #4fc472
+════════════════════════════════════════════════ */
+const JAGUA_ESTADOS = {
+  IDLE:       'idle',
+  HABLAR:     'hablar',
+  FELIZ:      'feliz',
+  TRISTE:     'triste',
+  SENALAR:    'senalar',
+};
+
+// Genera el SVG de Jaguapanela en distintos tamaños y estados
+function crearJaguaSVG(estado = 'idle', escala = 1) {
+  const w = Math.round(80 * escala);
+  const h = Math.round(100 * escala);
+
+  // Colores
+  const C = {
+    pelaje:    '#c47a3a',
+    oscuro:    '#7a4a1e',
+    vientre:   '#f5deb3',
+    mancha:    '#3d2010',
+    ojo:       '#4fc472',
+    pupilas:   '#111',
+    nariz:     '#3d2010',
+    lengua:    '#e07070',
+    borde:     '#2a1208',
+    camisa:    '#2d6a2d',
+    pantalon:  '#1a3a1a',
+    piel:      '#c47a3a',
+    brilloOjo: '#fff',
+    verde:     '#4fc472',
+  };
+
+  // Bocas según estado
+  const bocas = {
+    idle:    `<path d="M 30 58 Q 40 63 50 58" stroke="${C.borde}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,
+    hablar:  `<path d="M 30 58 Q 40 66 50 58" stroke="${C.borde}" stroke-width="1.5" fill="${C.lengua}" stroke-linecap="round"/>`,
+    feliz:   `<path d="M 28 55 Q 40 68 52 55" stroke="${C.borde}" stroke-width="2" fill="${C.lengua}" stroke-linecap="round"/>`,
+    triste:  `<path d="M 30 62 Q 40 55 50 62" stroke="${C.borde}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,
+    senalar: `<path d="M 30 58 Q 40 63 50 58" stroke="${C.borde}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,
+  };
+
+  // Cejas según estado
+  const cejas = {
+    idle:    `<line x1="28" y1="35" x2="38" y2="33" stroke="${C.borde}" stroke-width="2" stroke-linecap="round"/>
+              <line x1="42" y1="33" x2="52" y2="35" stroke="${C.borde}" stroke-width="2" stroke-linecap="round"/>`,
+    hablar:  `<line x1="28" y1="34" x2="38" y2="32" stroke="${C.borde}" stroke-width="2" stroke-linecap="round"/>
+              <line x1="42" y1="32" x2="52" y2="34" stroke="${C.borde}" stroke-width="2" stroke-linecap="round"/>`,
+    feliz:   `<path d="M 27 34 Q 33 29 38 33" stroke="${C.borde}" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M 42 33 Q 47 29 53 34" stroke="${C.borde}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    triste:  `<path d="M 27 33 Q 33 36 38 34" stroke="${C.borde}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <path d="M 42 34 Q 47 36 53 33" stroke="${C.borde}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    senalar: `<line x1="28" y1="34" x2="38" y2="32" stroke="${C.borde}" stroke-width="2" stroke-linecap="round"/>
+              <line x1="42" y1="32" x2="52" y2="34" stroke="${C.borde}" stroke-width="2" stroke-linecap="round"/>`,
+  };
+
+  // Brazo derecho según estado (señalando o normal)
+  const brazoDer = {
+    idle:    `<rect x="54" y="65" width="10" height="22" rx="5" fill="${C.camisa}"/>
+              <ellipse cx="59" cy="88" rx="6" ry="5" fill="${C.piel}"/>`,
+    hablar:  `<rect x="54" y="65" width="10" height="22" rx="5" fill="${C.camisa}"/>
+              <ellipse cx="59" cy="88" rx="6" ry="5" fill="${C.piel}"/>`,
+    feliz:   `<rect x="52" y="60" width="10" height="18" rx="5" fill="${C.camisa}" transform="rotate(-25 57 65)"/>
+              <ellipse cx="64" cy="52" rx="6" ry="5" fill="${C.piel}" transform="rotate(-25 64 52)"/>`,
+    triste:  `<rect x="54" y="65" width="10" height="22" rx="5" fill="${C.camisa}"/>
+              <ellipse cx="59" cy="88" rx="6" ry="5" fill="${C.piel}"/>`,
+    senalar: `<rect x="53" y="58" width="10" height="20" rx="5" fill="${C.camisa}" transform="rotate(-45 58 65)"/>
+              <ellipse cx="68" cy="46" rx="6" ry="5" fill="${C.piel}" transform="rotate(-45 68 46)"/>
+              <line x1="73" y1="41" x2="84" y2="30" stroke="${C.verde}" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round"/>`,
+  };
+
+  const brazoIzq = {
+    idle:    `<rect x="16" y="65" width="10" height="22" rx="5" fill="${C.camisa}"/>
+              <ellipse cx="21" cy="88" rx="6" ry="5" fill="${C.piel}"/>`,
+    hablar:  `<rect x="16" y="65" width="10" height="22" rx="5" fill="${C.camisa}"/>
+              <ellipse cx="21" cy="88" rx="6" ry="5" fill="${C.piel}"/>`,
+    feliz:   `<rect x="18" y="60" width="10" height="18" rx="5" fill="${C.camisa}" transform="rotate(25 23 65)"/>
+              <ellipse cx="16" cy="52" rx="6" ry="5" fill="${C.piel}" transform="rotate(25 16 52)"/>`,
+    triste:  `<rect x="14" y="68" width="10" height="22" rx="5" fill="${C.camisa}" transform="rotate(15 19 75)"/>
+              <ellipse cx="12" cy="90" rx="6" ry="5" fill="${C.piel}"/>`,
+    senalar: `<rect x="16" y="65" width="10" height="22" rx="5" fill="${C.camisa}"/>
+              <ellipse cx="21" cy="88" rx="6" ry="5" fill="${C.piel}"/>`,
+  };
+
+  const e = estado in bocas ? estado : 'idle';
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 80 100"
+    width="${w}" height="${h}"
+    style="image-rendering:pixelated; overflow:visible;">
+
+    <!-- Orejas -->
+    <polygon points="14,22 8,6 22,16" fill="${C.pelaje}" stroke="${C.borde}" stroke-width="1"/>
+    <polygon points="66,22 72,6 58,16" fill="${C.pelaje}" stroke="${C.borde}" stroke-width="1"/>
+    <!-- Interior orejas -->
+    <polygon points="14,20 10,10 20,17" fill="${C.vientre}" opacity="0.7"/>
+    <polygon points="66,20 70,10 60,17" fill="${C.vientre}" opacity="0.7"/>
+
+    <!-- Cabeza base -->
+    <ellipse cx="40" cy="38" rx="28" ry="26" fill="${C.pelaje}" stroke="${C.borde}" stroke-width="1.5"/>
+
+    <!-- Manchas de jaguar en cabeza -->
+    <ellipse cx="20" cy="28" rx="5" ry="4" fill="${C.mancha}" opacity="0.55" transform="rotate(-15 20 28)"/>
+    <ellipse cx="60" cy="28" rx="5" ry="4" fill="${C.mancha}" opacity="0.55" transform="rotate(15 60 28)"/>
+    <ellipse cx="15" cy="42" rx="4" ry="5" fill="${C.mancha}" opacity="0.4" transform="rotate(-10 15 42)"/>
+    <ellipse cx="65" cy="42" rx="4" ry="5" fill="${C.mancha}" opacity="0.4" transform="rotate(10 65 42)"/>
+
+    <!-- Vientre cabeza -->
+    <ellipse cx="40" cy="50" rx="16" ry="12" fill="${C.vientre}" opacity="0.8"/>
+
+    <!-- Ojos -->
+    <ellipse class="jagua-ojo-izq" cx="30" cy="38" rx="7" ry="7" fill="${C.ojo}" stroke="${C.borde}" stroke-width="1.5"/>
+    <ellipse class="jagua-ojo-der" cx="50" cy="38" rx="7" ry="7" fill="${C.ojo}" stroke="${C.borde}" stroke-width="1.5"/>
+    <!-- Pupilas -->
+    <ellipse cx="30" cy="38" rx="3" ry="4" fill="${C.pupilas}"/>
+    <ellipse cx="50" cy="38" rx="3" ry="4" fill="${C.pupilas}"/>
+    <!-- Brillo ojos -->
+    <circle cx="32" cy="36" r="1.5" fill="${C.brilloOjo}" opacity="0.9"/>
+    <circle cx="52" cy="36" r="1.5" fill="${C.brilloOjo}" opacity="0.9"/>
+
+    <!-- Nariz -->
+    <ellipse cx="40" cy="50" rx="5" ry="3.5" fill="${C.nariz}"/>
+    <ellipse cx="40" cy="49" rx="3" ry="2" fill="#5a2e12" opacity="0.4"/>
+
+    <!-- Bigotes -->
+    <line x1="18" y1="52" x2="34" y2="53" stroke="${C.borde}" stroke-width="1" opacity="0.6"/>
+    <line x1="18" y1="57" x2="34" y2="55" stroke="${C.borde}" stroke-width="1" opacity="0.6"/>
+    <line x1="46" y1="53" x2="62" y2="52" stroke="${C.borde}" stroke-width="1" opacity="0.6"/>
+    <line x1="46" y1="55" x2="62" y2="57" stroke="${C.borde}" stroke-width="1" opacity="0.6"/>
+
+    <!-- Cejas -->
+    ${cejas[e]}
+
+    <!-- Boca -->
+    ${bocas[e]}
+
+    <!-- Cuerpo -->
+    <rect class="jagua-cuerpo" x="24" y="60" width="32" height="34" rx="8" fill="${C.camisa}" stroke="${C.borde}" stroke-width="1"/>
+
+    <!-- Vientre cuerpo -->
+    <ellipse cx="40" cy="74" rx="10" ry="12" fill="${C.vientre}" opacity="0.35"/>
+
+    <!-- Manchas cuerpo -->
+    <ellipse cx="30" cy="66" rx="4" ry="3" fill="${C.mancha}" opacity="0.25" transform="rotate(-10 30 66)"/>
+    <ellipse cx="50" cy="66" rx="4" ry="3" fill="${C.mancha}" opacity="0.25" transform="rotate(10 50 66)"/>
+
+    <!-- Brazos -->
+    ${brazoIzq[e]}
+    ${brazoDer[e]}
+
+    <!-- Piernas -->
+    <rect x="28" y="88" width="10" height="14" rx="5" fill="${C.pantalon}" stroke="${C.borde}" stroke-width="1"/>
+    <rect x="42" y="88" width="10" height="14" rx="5" fill="${C.pantalon}" stroke="${C.borde}" stroke-width="1"/>
+    <!-- Pies -->
+    <ellipse cx="33" cy="101" rx="8" ry="5" fill="${C.oscuro}" stroke="${C.borde}" stroke-width="1"/>
+    <ellipse cx="47" cy="101" rx="8" ry="5" fill="${C.oscuro}" stroke="${C.borde}" stroke-width="1"/>
+
+    <!-- Rabo -->
+    <path d="M 54 88 Q 72 80 70 68 Q 68 60 76 58"
+          fill="none" stroke="${C.pelaje}" stroke-width="4"
+          stroke-linecap="round"/>
+    <path d="M 54 88 Q 72 80 70 68 Q 68 60 76 58"
+          fill="none" stroke="${C.mancha}" stroke-width="1.5"
+          stroke-linecap="round" opacity="0.4"/>
+  </svg>`;
+
+  return svg;
+}
+
+// Renderiza Jaguapanela en un contenedor, con un estado y animación de idle
+function renderJagua(containerId, estado = 'idle', escala = 1) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = crearJaguaSVG(estado, escala);
+  el.className = `jagua-${estado}`;
+}
+
+// Anima Jaguapanela entre estados
+let jaguaAnimTimers = {};
+function setJaguaEstado(containerId, estado, duracion = null) {
+  if (jaguaAnimTimers[containerId]) {
+    clearTimeout(jaguaAnimTimers[containerId]);
+    jaguaAnimTimers[containerId] = null;
+  }
+  // Mapa de escalas por contenedor
+  const escalas = {
+    'jagua-ss':            2.2,
+    'jagua-instrucciones': 1.6,
+    'jagua-camara':        1.1,
+    'jagua-resultado':     1.0,
+    'jagua-analizando-wrap': 1.3,
+  };
+  const escala = escalas[containerId] || 1;
+  renderJagua(containerId, estado, escala);
+
+  if (duracion) {
+    jaguaAnimTimers[containerId] = setTimeout(() => {
+      renderJagua(containerId, 'idle', escala);
+    }, duracion);
+  }
+}
+
+/* ════════════════════════════════════════════════
+   DATOS: CLASES, CONSEJOS
+════════════════════════════════════════════════ */
+const CANECA_FALLBACK = {
+  'caneca_blanca': 'canecaBlanca', 'caneca_negra': 'canecaNegra',
+  'caneca_verde': 'canecaVerde', 'caneca_fondo': 'canecaFondo',
+  'canecablanca': 'canecaBlanca', 'canecanegra': 'canecaNegra',
+  'canecaverde': 'canecaVerde', 'canecafondo': 'canecaFondo',
+  'blanca': 'canecaBlanca', 'negra': 'canecaNegra',
+  'verde': 'canecaVerde', 'fondo': 'canecaFondo',
+  'caneca blanca': 'canecaBlanca', 'caneca negra': 'canecaNegra',
+  'caneca verde': 'canecaVerde', 'caneca fondo': 'canecaFondo',
+};
+
+const INFO_CANECA = {
+  canecaBlanca: {
+    nombre: '♻️ Caneca Blanca',
+    tipo: 'reciclable',
+    desc: 'Materiales reciclables como plástico limpio, vidrio, metal y papel/cartón seco.',
+    emoji: '🔵',
+    cls: 'blanca',
+    idx: 0,
+  },
+  canecaNegra: {
+    nombre: '🗑️ Caneca Negra',
+    tipo: 'no aprovechable',
+    desc: 'Residuos no aprovechables como icopor, residuos sanitarios y plástico contaminado.',
+    emoji: '⚫',
+    cls: 'negra',
+    idx: 1,
+  },
+  canecaVerde: {
+    nombre: '🌿 Caneca Verde',
+    tipo: 'orgánico',
+    desc: 'Residuos orgánicos como restos de comida, cáscaras de frutas y residuos de jardín.',
+    emoji: '🟢',
+    cls: 'verde',
+    idx: 2,
+  },
+  canecaFondo: {
+    nombre: '🖼️ Fondo / Sin objeto',
+    tipo: 'sin detección',
+    desc: 'No se detectó ningún objeto claro. Intenta colocar el residuo más cerca de la cámara.',
+    emoji: '❔',
+    cls: 'fondo',
+    idx: 3,
+  },
+};
+
+const FRASES_JAGUA = {
+  correcto: [
+    '¡Excelente! ¡Eso sí es reciclar bien! 🎉',
+    '¡Perfecto! ¡Tú y yo salvamos el planeta! 🌍',
+    '¡Lo sabías! ¡Sigue así, campeón! ♻️',
+  ],
+  incorrecto: [
+    '¡Casi! Mira bien la explicación y lo aprenderás 💪',
+    'No te preocupes, ¡el reciclaje se aprende! 🌱',
+    'Fíjate en los colores de las canecas, ¡tú puedes! 🐆',
+  ],
+  camara: [
+    'Coloca el residuo frente a la cámara y elige en qué caneca va 👇',
+    'Cuando estés listo, toca la caneca donde crees que va 📷',
+    '¡Muéstrame el residuo y te ayudo a clasificarlo! 🐆',
+  ],
+  instrucciones: [
+    '¡Hola! Soy Jaguapanela 🐆\n¡Te voy a enseñar a reciclar bien!',
+    'Reciclar bien es más fácil\nde lo que crees. ¡Yo te guío! ♻️',
+  ],
+};
+
+function fraseAleatoria(tipo) {
+  const lista = FRASES_JAGUA[tipo] || ['¡Vamos!'];
+  return lista[Math.floor(Math.random() * lista.length)];
+}
+
+/* ════════════════════════════════════════════════
+   NAVEGACIÓN ENTRE PANTALLAS
+════════════════════════════════════════════════ */
+let pantallaActual = 'ss';
+
+function mostrarPantalla(id) {
+  document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+  const el = document.getElementById('pantalla-' + id);
+  if (el) el.classList.add('activa');
+  pantallaActual = id;
+}
+
+function irAInstrucciones() {
+  mostrarPantalla('instrucciones');
+  setJaguaEstado('jagua-instrucciones', 'hablar', 2500);
+  const frase = fraseAleatoria('instrucciones');
+  document.getElementById('burbuja-instrucciones').textContent = frase;
+  setTimeout(() => setJaguaEstado('jagua-instrucciones', 'idle'), 2600);
+}
+
+function irACamera() {
+  mostrarPantalla('camara');
+  // Resetear estado de cámara
+  descongelarFrame();
+  ocultarError();
+  actualizarStatus('grabando');
+  setJaguaEstado('jagua-camara', 'idle');
+  document.getElementById('burbuja-camara').textContent = fraseAleatoria('camara');
+  reiniciarStream();
+  resetearInactividad();
+}
+
+function irAResultado() {
+  mostrarPantalla('resultado');
+}
+
+function irASalvapantallas() {
+  mostrarPantalla('ss');
+  setJaguaEstado('jagua-ss', 'idle');
+  resetearInactividad();
+}
+
+/* ════════════════════════════════════════════════
+   ESTADO DE CÁMARA
+════════════════════════════════════════════════ */
+let streamOk = false;
+let ledPinActivo = '';
+
+function onStreamLoad() {
+  streamOk = true;
+  actualizarStatus('grabando');
+  document.getElementById('cam-sin-conexion').classList.remove('visible');
+}
+
+function onStreamError() {
+  streamOk = false;
+  actualizarStatus('error');
+  document.getElementById('cam-sin-conexion').classList.add('visible');
+}
+
+function reiniciarStream() {
+  const img = document.getElementById('camera-stream');
+  if (img) {
+    img.src = '';
+    setTimeout(() => { img.src = '/video/stream'; }, 100);
+  }
+}
+
+function actualizarStatus(estado) {
+  const dot   = document.getElementById('status-dot');
+  const label = document.getElementById('status-label');
+  dot.className = 'status-dot';
+  if (estado === 'grabando') {
+    dot.classList.add('grabando');
+    label.textContent = '● GRABANDO EN VIVO';
+  } else if (estado === 'foto') {
+    dot.classList.add('foto-tomada');
+    label.textContent = '📷 FOTO TOMADA';
+  } else {
+    label.textContent = '⚠ SIN SEÑAL';
+  }
+}
+
+function congelarFrame() {
+  const img    = document.getElementById('camera-stream');
+  const canvas = document.getElementById('frozen-canvas');
+  if (!canvas || !img) return;
+  canvas.width  = img.naturalWidth  || img.offsetWidth  || 640;
+  canvas.height = img.naturalHeight || img.offsetHeight || 480;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  canvas.style.display = 'block';
+  img.style.opacity    = '0';
+  actualizarStatus('foto');
+}
+
+function descongelarFrame() {
+  const img    = document.getElementById('camera-stream');
+  const canvas = document.getElementById('frozen-canvas');
+  if (canvas) canvas.style.display = 'none';
+  if (img)    img.style.opacity    = '1';
+  actualizarStatus(streamOk ? 'grabando' : 'error');
+}
+
+function mostrarLaser(mostrar) {
+  document.getElementById('laser-scanner').style.display = mostrar ? 'block' : 'none';
+}
+
+function ocultarError() {
+  document.getElementById('canecas-error').classList.remove('visible');
+  document.querySelectorAll('.caneca-btn').forEach(b => b.classList.remove('deshabilitada'));
+}
+
+function mostrarErrorIA() {
+  document.querySelectorAll('.caneca-btn').forEach(b => b.classList.add('deshabilitada'));
+  document.getElementById('canecas-error').classList.add('visible');
+  setJaguaEstado('jagua-camara', 'triste', 3000);
+  document.getElementById('burbuja-camara').textContent = '¡Ups! No pude conectarme a la IA 😟 Toca "Reintentar"';
+}
+
+function reintentarConexion() {
+  ocultarError();
+  setJaguaEstado('jagua-camara', 'hablar', 1500);
+  document.getElementById('burbuja-camara').textContent = fraseAleatoria('camara');
+  reiniciarStream();
+  verificarHealth();
+}
+
+/* ════════════════════════════════════════════════
+   SELECCIÓN DE CANECA → PREDICCIÓN
+════════════════════════════════════════════════ */
+let canecaSeleccionada = null;
+let capturandoImagen   = false;
+
+async function seleccionarCaneca(caneca) {
+  if (capturandoImagen) return;
+  capturandoImagen = true;
+  canecaSeleccionada = caneca;
+
+  // Vibración táctil
+  if (navigator.vibrate) navigator.vibrate(40);
+
+  // Congelar frame y mostrar laser
+  congelarFrame();
+  mostrarLaser(true);
+
+  // Jaguapanela habla mientras analiza
+  setJaguaEstado('jagua-camara', 'hablar');
+  document.getElementById('burbuja-camara').textContent = '¡Tomando la foto y analizando...!';
+
+  // Mostrar overlay de análisis
+  const overlayAn = document.getElementById('overlay-analizando');
+  setJaguaEstado('jagua-analizando-wrap', 'hablar');
+  overlayAn.classList.add('activo');
+  animarTextoAnalizando();
+
+  try {
+    // Capturar imagen del canvas congelado
+    const frozenCanvas = document.getElementById('frozen-canvas');
+    const b64 = frozenCanvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+    if (!b64) throw new Error('No hay imagen disponible');
+
+    const resp = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imagen: b64 }),
     });
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // DARK MODE
-    // ─────────────────────────────────────────────────────────────────────────
-    const darkBtn = document.getElementById('dark-mode-btn');
-    let isDark = localStorage.getItem('darkMode') === 'true';
-    function applyDarkMode(dark) {
-        document.body.classList.toggle('dark-theme', dark);
-        darkBtn.textContent = dark ? '☀️' : '🌙';
-        localStorage.setItem('darkMode', dark);
-    }
-    applyDarkMode(isDark);
-    darkBtn.addEventListener('click', () => { isDark = !isDark; applyDarkMode(isDark); });
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // TOAST SYSTEM
-    // ─────────────────────────────────────────────────────────────────────────
-    function showToast(msg, type = 'info', duration = 3000) {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast${type === 'error' ? ' toast--error' : type === 'success' ? ' toast--success' : type === 'warning' ? ' toast--warning' : ''}`;
-        toast.textContent = msg;
-        container.appendChild(toast);
-        setTimeout(() => {
-            toast.classList.add('toast-out');
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // CONFETTI
-    // ─────────────────────────────────────────────────────────────────────────
-    function launchConfetti() {
-        const container = document.getElementById('confetti-container');
-        const colors = ['#2ecc71','#3498db','#e74c3c','#f1c40f','#9b59b6','#1abc9c','#e67e22','#ff6b9d'];
-        for (let i = 0; i < 80; i++) {
-            const piece = document.createElement('div');
-            piece.className = 'confetti-piece';
-            piece.style.left = Math.random() * 100 + 'vw';
-            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            piece.style.width = (8 + Math.random() * 8) + 'px';
-            piece.style.height = (10 + Math.random() * 10) + 'px';
-            const dur = 2 + Math.random() * 1.5;
-            piece.style.animationDuration = dur + 's';
-            piece.style.animationDelay = Math.random() * 0.8 + 's';
-            container.appendChild(piece);
-            setTimeout(() => piece.remove(), (dur + 1) * 1000);
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // HAPTIC FEEDBACK
-    // ─────────────────────────────────────────────────────────────────────────
-    function haptic(pattern) {
-        if (navigator.vibrate) navigator.vibrate(pattern);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // FADE HELPERS
-    // ─────────────────────────────────────────────────────────────────────────
-    function fadeIn(el, displayType = 'block') {
-        el.style.display = displayType;
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => el.classList.add('visible'));
-        });
-    }
-    function fadeOut(el, cb) {
-        el.classList.remove('visible');
-        setTimeout(() => { el.style.display = 'none'; if (cb) cb(); }, 400);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // LASER SCANNER
-    // ─────────────────────────────────────────────────────────────────────────
-    function showLaser() { document.getElementById('laser-scanner').style.display = 'block'; }
-    function hideLaser() { document.getElementById('laser-scanner').style.display = 'none'; }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // LOADING TEXT TIMERS
-    // ─────────────────────────────────────────────────────────────────────────
-    let loadingTimer4, loadingTimer8;
-    function startLoadingTimers() {
-        const txt = document.getElementById('loading-text');
-        if (txt) txt.textContent = 'Analizando imagen con IA...';
-        loadingTimer4 = setTimeout(() => { if (txt) txt.textContent = 'Despertando el servidor...'; }, 4000);
-        loadingTimer8 = setTimeout(() => { if (txt) txt.textContent = 'Analizando detalles...'; }, 8000);
-    }
-    function stopLoadingTimers() {
-        clearTimeout(loadingTimer4);
-        clearTimeout(loadingTimer8);
-        const txt = document.getElementById('loading-text');
-        if (txt) txt.textContent = 'Analizando imagen con IA...';
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // MAPEO SUBCATEGORÍA → CANECA
-    // ─────────────────────────────────────────────────────────────────────────
-    const SUBCATEGORIA_INFO = {
-        "Plastico_Limpio":          { caneca:"canecaBlanca", emoji:"♻️",  nombre:"Plástico limpio",              descripcion:"Es un plástico reciclable (PET, HDPE). Asegúrate de que esté limpio y seco.",           consejo:"Aplasta las botellas para ahorrar espacio en el transporte al centro de reciclaje." },
-        "Papel_Carton":             { caneca:"canecaBlanca", emoji:"📦",  nombre:"Papel o cartón",               descripcion:"Es papel o cartón reciclable. Mantenerlo seco es clave.",                               consejo:"El cartón mojado o grasoso NO se puede reciclar. Sepáralo limpio y seco." },
-        "Vidrio":                   { caneca:"canecaBlanca", emoji:"🍶",  nombre:"Vidrio",                       descripcion:"Es vidrio reciclable. Retira tapas y etiquetas cuando sea posible.",                    consejo:"El vidrio se puede reciclar infinitas veces sin perder calidad." },
-        "Metal_Latas":              { caneca:"canecaBlanca", emoji:"🥫",  nombre:"Metal / lata",                 descripcion:"Es metal o aluminio reciclable. Enjuágalo brevemente.",                                 consejo:"Reciclar aluminio consume 95% menos energía que producirlo desde cero." },
-        "Plastico_Contaminado":     { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Plástico contaminado",         descripcion:"Plástico con residuos de comida. Al estar contaminado, no puede reciclarse.",            consejo:"Intenta limpiar envases antes de descartarlos." },
-        "Icopor":                   { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Icopor / poliestireno",        descripcion:"El icopor no se recicla en la mayoría de ciudades. Va a la caneca negra.",               consejo:"Prefiere alternativas reutilizables al icopor." },
-        "Residuos_Sanitarios":      { caneca:"canecaNegra",  emoji:"🚽", nombre:"Residuo sanitario",            descripcion:"Los residuos sanitarios van siempre a la caneca negra.",                                 consejo:"Ciérralos bien antes de desecharlos." },
-        "Carton_Contaminado":       { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Cartón/papel contaminado",    descripcion:"El papel o cartón con grasa no puede reciclarse.",                                       consejo:"Una pequeña mancha de grasa arruina toda una carga de papel reciclado." },
-        "Otros_No_Reciclables":     { caneca:"canecaNegra",  emoji:"🗑️", nombre:"No reciclable",               descripcion:"Este residuo no puede reciclarse ni compostarse.",                                       consejo:"Reduce el consumo de productos con empaques no reciclables." },
-        "Frutas_Verduras":          { caneca:"canecaVerde",  emoji:"🍎", nombre:"Cáscaras de frutas/verduras",  descripcion:"Son restos orgánicos. Se pueden compostar o convertir en abono.",                       consejo:"En un compostero se convierten en abono en días." },
-        "Restos_Comida_Cocida":     { caneca:"canecaVerde",  emoji:"🍚", nombre:"Restos de comida cocida",      descripcion:"Van a la caneca verde como residuo orgánico aprovechable.",                              consejo:"Planear las comidas reduce el desperdicio hasta un 30%." },
-        "Huesos_Semillas":          { caneca:"canecaVerde",  emoji:"🦴", nombre:"Huesos o semillas",            descripcion:"Los huesos y semillas son orgánicos y van a la caneca verde.",                          consejo:"Algunas semillas como el aguacate se pueden reutilizar para sembrar." },
-        "Residuos_Jardin":          { caneca:"canecaVerde",  emoji:"🌿", nombre:"Residuos de jardín",           descripcion:"Hojas, pasto y ramas son residuos orgánicos. Compostan perfectamente.",                 consejo:"El pasto cortado mezclado con tierra produce abono rico." },
-        "Residuos_Biodegradables_Varios": { caneca:"canecaVerde", emoji:"☕", nombre:"Biodegradable (café, té…)", descripcion:"Estos residuos son biodegradables y ricos en nutrientes.",                           consejo:"Los posos de café son un fertilizante natural para plantas de interior." },
-        "Fondo":                          { caneca:"canecaFondo", emoji:"🖼️", nombre:"Fondo / sin objeto", descripcion:"No se detectó ningún objeto de interés en la imagen.", consejo:"Coloca el objeto frente a la cámara para obtener una predicción correcta." },
-    };
-
-    const CANECA_FALLBACK = {
-        // Clases exactas del modelo .h5 (caso puede variar)
-        "caneca_blanca":  "canecaBlanca",
-        "caneca_negra":   "canecaNegra",
-        "caneca_verde":   "canecaVerde",
-        "caneca_fondo":   "canecaFondo",
-        // Variantes sin guión bajo
-        "canecablanca":   "canecaBlanca",
-        "canecanegra":    "canecaNegra",
-        "canecaverde":    "canecaVerde",
-        "canecafondo":    "canecaFondo",
-        // Solo la palabra
-        "blanca":         "canecaBlanca",
-        "negra":          "canecaNegra",
-        "verde":          "canecaVerde",
-        "fondo":          "canecaFondo",
-        // Con espacios
-        "caneca blanca":  "canecaBlanca",
-        "caneca negra":   "canecaNegra",
-        "caneca verde":   "canecaVerde",
-        "caneca fondo":   "canecaFondo",
-        // Minúsculas
-        "Caneca_blanca":  "canecaBlanca",
-        "Caneca_negra":   "canecaNegra",
-        "Caneca_verde":   "canecaVerde",
-        "Caneca_fondo":   "canecaFondo",
-    };
-
-    const CONSEJOS_LATERALES = [
-        // ── Blanca / Reciclables ──
-        "Reciclar una lata de aluminio ahorra energía para 3 horas de TV.",
-        "El vidrio se puede reciclar infinitas veces sin perder calidad.",
-        "El papel mojado o grasoso NO se puede reciclar. ¡Mantenlo seco!",
-        "Aplasta las botellas PET antes de reciclarlas para ahorrar espacio.",
-        "Una tonelada de papel reciclado salva 17 árboles.",
-        "Lavar brevemente los envases antes de reciclarlos mejora su calidad.",
-        "El plástico PET (botellas de agua) es el más reciclado del mundo.",
-        "El aluminio reciclado conserva el 100% de sus propiedades originales.",
-        "Quitar las tapas plásticas de las botellas facilita el reciclaje.",
-        "El cartón ondulado es uno de los materiales más reciclados del mundo.",
-        "Separar el cartón en planos facilita su almacenamiento y transporte.",
-        "Los envases de yogur son reciclables si están limpios y secos.",
-        "Las cajas de pizza con grasa NO se reciclan; separa la parte limpia.",
-        "Reúsa los frascos de vidrio como contenedores de especias o semillas.",
-        "El papel reciclado usa un 60% menos de agua que el papel virgen.",
-        "El plástico #1 (PET) y #2 (HDPE) son los más aceptados en Colombia.",
-        "Los tubos de cartón de papel higiénico son reciclables.",
-        "Las botellas de aceite deben estar bien escurridas antes de reciclarlas.",
-        "Los aerosoles vacíos son reciclables como metal.",
-        "Las bolsas de leche plásticas son reciclables si están limpias.",
-        "Una botella PET puede convertirse en fibra para ropa deportiva.",
-        "Una botella de vidrio tarda un millón de años en degradarse.",
-        "Las latas de aluminio pueden volver a las tiendas en solo 60 días.",
-        "El vidrio de color y el transparente se reciclan juntos en muchos municipios.",
-        "El papel de periódico puede convertirse en nuevo papel en 7 días.",
-        "Reciclar cartón reduce la tala de bosques y el consumo de agua.",
-        "Dobla el cartón antes de depositarlo para ahorrar espacio en la caneca.",
-        "Los cuadernos viejos son reciclables si retiras las espirales metálicas.",
-        "Reutilizar un frasco de vidrio 10 veces equivale a reciclar 10 botellas nuevas.",
-        "El papel craft y las bolsas de papel son reciclables en la caneca blanca.",
-        "Las tapas metálicas de frascos también son reciclables en la caneca blanca.",
-        "Clasificar bien evita contaminar lotes enteros de material reciclable.",
-        // ── Verde / Orgánicos ──
-        "Los posos de café son un fertilizante natural para plantas de interior.",
-        "Compostar restos orgánicos reduce el metano en rellenos sanitarios.",
-        "Las semillas de aguacate y mango se pueden usar para sembrar en casa.",
-        "Las cáscaras de huevo son un excelente aporte de calcio al compost.",
-        "Los restos de fruta atraen moscas; cierra bien la caneca verde.",
-        "El pasto cortado mezclado con hojas produce un abono muy equilibrado.",
-        "Las plantas muertas de interior también van a la caneca verde.",
-        "Los filtros de té y café biodegradables van directo a la caneca verde.",
-        "Las servilletas usadas con comida son residuo orgánico, no reciclable.",
-        "Las cáscaras de cítricos demoran más en compostar; córtalas en trozos.",
-        "Los residuos orgánicos representan más del 50% de lo que tiramos.",
-        "Un compostero en casa puede transformar tus residuos en abono en 3 meses.",
-        "Los restos de poda de árboles se pueden convertir en chips para jardín.",
-        "Las cáscaras de plátano son ricas en potasio: excelente abono para plantas.",
-        "El vinagre de frutas puede hacerse con cáscaras en lugar de tirarlas.",
-        "Las pieles de cebolla sirven para hacer caldos antes de compostar.",
-        "Los posos de mate o aguapanela también son compostables.",
-        "Las mondas de papa y zanahoria son excelentes para el compost.",
-        "Los huesos de pollo y cerdo son orgánicos y van a la caneca verde.",
-        "El compostaje comunal es una opción si no tienes espacio en casa.",
-        "El biogás producido por residuos orgánicos puede generar electricidad.",
-        "Planear las comidas reduce el desperdicio de alimentos hasta un 30%.",
-        "El pelo cortado y las uñas son biodegradables y van al orgánico.",
-        "Las algas marinas son un excelente activador del proceso de compostaje.",
-        "La fermentación bokashi de residuos reduce olores y acelera el compostaje.",
-        "Mezclar residuos secos y húmedos en el compost da mejores resultados.",
-        // ── Negra / No aprovechables ──
-        "El icopor tarda más de 500 años en degradarse en la naturaleza.",
-        "Prefiere productos con menos empaque: menos residuos desde el origen.",
-        "Los pañales desechables van a la caneca negra bien cerrados.",
-        "Las colillas de cigarro son tóxicas y van a la caneca negra.",
-        "Los medicamentos vencidos NO van a la caneca normal; búscalos en puntos especiales.",
-        "Las pilas y baterías son residuos peligrosos; entrégalos en puntos autorizados.",
-        "Las bombillas fluorescentes contienen mercurio; no van a la caneca común.",
-        "Los residuos de mascotas (excrementos) van siempre a la caneca negra.",
-        "Las esponjas de cocina usadas van a la caneca negra.",
-        "Los papeles con solventes o pintura van a la caneca negra.",
-        "Los chicles masticados van a la caneca negra, no al suelo.",
-        "Los vasos desechables con restos de bebida van a la caneca negra.",
-        "El plástico #6 (poliestireno/icopor) casi no se recicla localmente.",
-        "Los envases de plástico oscuro suelen no ser reciclables.",
-        "Las baterías recargables reducen hasta 300 veces los residuos peligrosos.",
-        "Los cartuchos de tinta tienen programas de devolución en tiendas.",
-        "La caneca negra es para residuos que ya no tienen más vida útil.",
-        "El aceite de cocina usado no va por el desagüe; llévalo a puntos especiales.",
-        // ── Generales / Cultura ──
-        "Reducir, reutilizar y reciclar: en ese orden de importancia.",
-        "Separar residuos en casa reduce hasta un 70% de lo que va al relleno.",
-        "Comprar a granel reduce el empaque y los residuos generados.",
-        "Tener tres canecas en casa es el primer paso para reciclar bien.",
-        "Enseña a los niños a clasificar: el hábito formado temprano dura toda la vida.",
-        "Lleva tus materiales reciclables a puntos de acopio para mayor impacto.",
-        "Revisa el símbolo de reciclaje en los envases antes de clasificarlos.",
-        "El número dentro del símbolo de reciclaje indica el tipo de plástico.",
-        "El plástico flexible (bolsas) se recicla en puntos específicos, no en la caneca.",
-        "Preferir envases retornables es mejor que reciclar: cierra el ciclo.",
-        "El reciclaje informal recupera más del 70% de los materiales en Bogotá.",
-        "Un kg de plástico reciclado puede reemplazar 0,5 kg de petróleo.",
-        "Cada tonelada de vidrio reciclado evita la extracción de 1,2 ton de arena.",
-        "Reciclar papel reduce la contaminación del agua en un 35%.",
-        "Usar ambos lados del papel antes de reciclarlo es un paso extra que vale.",
-        "Reciclar genera empleos: en Colombia hay miles de recicladores de oficio.",
-        "Apoyar a los recicladores de base mejora la economía circular local.",
-        "Usar bolsas reutilizables evita 500 bolsas plásticas por persona al año.",
-        "La reducción de residuos en la fuente es más efectiva que el reciclaje.",
-        "Los envases multicapa (tetrapak) tienen centros de acopio especializados.",
-        "Cuando tengas duda sobre dónde va algo, consulta a tu gestor ambiental local.",
-        "El bioplástico NO siempre es compostable; revisa el etiquetado.",
-        "Separar los residuos en origen evita contaminar cargas enteras de reciclaje.",
-        "Cada clasificación correcta contribuye a la economía circular del país.",
-        "Compactar los residuos antes de llevarlos al punto de acopio ahorra viajes.",
-        // ── Cámara / IA ──
-        "Coloca el objeto frente a la cámara para que la IA lo clasifique bien.",
-        "Cuanto mejor iluminada esté la imagen, más precisa será la predicción.",
-        "Un fondo neutro contrasta mejor con el residuo y mejora la clasificación.",
-        "Cada residuo bien clasificado es un recurso que regresa al ciclo productivo.",
-        "Gracias por usar esta herramienta: ¡estás ayudando al planeta con cada uso!",
-    ];
-
-    // Consejos específicos por caneca — se muestran al seleccionar una caneca
-    const CONSEJOS_POR_CANECA = {
-        canecaBlanca: [
-            "♻️ Las botellas PET son el plástico más reciclado del mundo. ¡Aplástalas antes de tirarlas!",
-            "🥫 El aluminio reciclado ahorra un 95% de energía frente a producirlo desde cero.",
-            "🍶 El vidrio se recicla infinitas veces sin perder ninguna de sus propiedades.",
-            "📦 Mantén el papel seco: el papel mojado o grasoso no puede reciclarse.",
-            "🚿 Enjuaga brevemente los envases antes de depositarlos en la caneca blanca.",
-            "⚡ Las latas de aluminio pueden estar de vuelta en tiendas en solo 60 días.",
-            "📦 El cartón limpio y seco es uno de los materiales más valiosos para reciclar.",
-            "🔩 Quitar las tapas de las botellas facilita el proceso de reciclaje del plástico.",
-            "🔢 El plástico #1 (PET) y #2 (HDPE) son los más aceptados en los centros de reciclaje.",
-            "📐 Dobla el cartón antes de depositarlo para ahorrar espacio en la caneca blanca.",
-        ],
-        canecaNegra: [
-            "⚠️ El icopor tarda más de 500 años en degradarse: evita usarlo cuando sea posible.",
-            "🚼 Los pañales y residuos sanitarios deben ir bien cerrados en la caneca negra.",
-            "🚬 Las colillas de cigarro son tóxicas; siempre van a la caneca negra.",
-            "🔋 Las pilas y baterías son peligrosas; llévalas a puntos especiales de recolección.",
-            "🍟 Los plásticos contaminados con comida no pueden reciclarse.",
-            "🚫 El poliestireno (icopor) casi no se recicla localmente en Colombia.",
-            "👃 Cierra bien las bolsas de residuos no aprovechables para evitar malos olores.",
-            "🐾 Los residuos de mascotas siempre van en bolsa cerrada a la caneca negra.",
-            "🧽 Las esponjas de cocina usadas van a la caneca negra, no al reciclaje.",
-            "💡 Reduce el consumo de productos con empaques no reciclables para generar menos basura.",
-        ],
-        canecaVerde: [
-            "🍎 Los restos de frutas y verduras se convierten en abono en pocas semanas.",
-            "🌱 Un compostero en casa produce abono gratuito y de alta calidad para tus plantas.",
-            "🍌 Las cáscaras de plátano son ricas en potasio: un fertilizante natural perfecto.",
-            "☕ Los posos de café mejoran el drenaje del suelo y alejan las plagas del jardín.",
-            "🌿 El pasto cortado mezclado con hojas secas produce un abono muy equilibrado.",
-            "🥚 Las cáscaras de huevo aportan calcio al compost y a la tierra del jardín.",
-            "✂️ Corta los restos orgánicos en trozos pequeños para que composten más rápido.",
-            "🍵 Los filtros de té biodegradables pueden ir directamente a la caneca verde.",
-            "📅 Planear las comidas reduce el desperdicio de alimentos hasta un 30%.",
-            "🌾 Los residuos de jardín como hojas y ramas también van a la caneca verde.",
-        ],
-        canecaFondo: [
-            "📷 Asegúrate de colocar el objeto frente a la cámara para una predicción precisa.",
-            "🖼️ Un fondo despejado mejora la capacidad de la IA para identificar el objeto.",
-            "💡 Ilumina bien el objeto antes de fotografiarlo para obtener mejores resultados.",
-            "🛍️ Si el objeto está en una bolsa, sácalo para que la cámara lo vea claramente.",
-            "🎯 Centra el residuo en la imagen para que el modelo lo clasifique correctamente.",
-            "🔍 Cuanto más cerca esté el objeto a la cámara, más precisa será la clasificación.",
-            "🌑 Evita sombras fuertes sobre el objeto para obtener mejores resultados.",
-            "⬜ Un fondo blanco o neutro contrasta mejor con el residuo que vas a clasificar.",
-            "✅ La clasificación correcta desde el origen es la base de un buen reciclaje.",
-            "🔄 Inténtalo de nuevo: coloca el residuo bien visible frente a la cámara.",
-        ],
-    };
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // CONFIG
-    // ─────────────────────────────────────────────────────────────────────────
-    // ✅ CORRECCIÓN: baseHost SIEMPRE es Flask (mismo origen)
-    // Flask proxea al ESP32. No hay llamadas directas desde el navegador al ESP32.
-    var baseHost = window.location.origin;  // http://localhost:5000 o http://IP_RASP:5000
-    let ledPinGlobal = "";
-
-    var streamUrl = window.location.origin;  // Para el stream MJPEG a través de Flask
-    const API_URL = "/predict"  // POST /predict con imagen en base64
-
-    dbg(`baseHost: ${baseHost}`);
-    dbg(`API_URL: ${API_URL}`);
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // DOM refs
-    // ─────────────────────────────────────────────────────────────────────────
-    var configSection, cameraStream, cameraContainer, ledGroup, agc, agcGain,
-        gainCeiling, aec, exposure, awb, wb, framesizeSelect,
-        canecaQuestion3, canecaQuestion, canecaSelection, predictionResultDiv,
-        nextSection, nextSectionTitle, nextSectionMessage,
-        configButton, configOverlay, adminSwitch,
-        passwordOverlay, passwordPanelTitle, passwordInput,
-        passwordSubmitButton, passwordCancelButton,
-        openCompartmentsBtn, modelErrorDiv, loadingSpinner,
-        textoConsejoLateral, panelConsejoResultado, textoConsejoResultado;
-
-    const PASSWORD_KEY = 'adminPassword';
-    let adminModeEnabled = false;
-
-    let consejoIndex = Math.floor(Math.random() * CONSEJOS_LATERALES.length);
-    function rotarConsejoLateral() {
-        consejoIndex = (consejoIndex + 1) % CONSEJOS_LATERALES.length;
-        if (textoConsejoLateral) textoConsejoLateral.textContent = CONSEJOS_LATERALES[consejoIndex];
-    }
-
-    function mostrarConsejoResultado(subcategoria, caneca) {
-        const info = SUBCATEGORIA_INFO[subcategoria];
-        panelConsejoResultado.className = '';
-        if (caneca === 'canecaBlanca') panelConsejoResultado.classList.add('blanca');
-        else if (caneca === 'canecaNegra') panelConsejoResultado.classList.add('negra');
-        else if (caneca === 'canecaVerde')  panelConsejoResultado.classList.add('verde');
-        else if (caneca === 'canecaFondo')  panelConsejoResultado.classList.add('fondo');
-        textoConsejoResultado.textContent = info
-            ? `${info.emoji} ${info.consejo}`
-            : "Recuerda siempre clasificar bien tus residuos.";
-        fadeIn(panelConsejoResultado, 'block');
-    }
-
-    function actualizarConsejoPorCaneca(caneca) {
-        const lista = CONSEJOS_POR_CANECA[caneca];
-        if (!lista) return;
-        const idx = Math.floor(Math.random() * lista.length);
-        if (textoConsejoLateral) textoConsejoLateral.textContent = lista[idx];
-        const panel = document.getElementById('panel-consejo-lateral');
-        if (panel) {
-            panel.classList.remove('caneca-blanca', 'caneca-negra', 'caneca-verde', 'caneca-fondo');
-            if (caneca === 'canecaBlanca')      panel.classList.add('caneca-blanca');
-            else if (caneca === 'canecaNegra')  panel.classList.add('caneca-negra');
-            else if (caneca === 'canecaVerde')  panel.classList.add('caneca-verde');
-            else if (caneca === 'canecaFondo')  panel.classList.add('caneca-fondo');
-        }
-    }
-
-    function resolverCanecaDesdeClase(className) {
-        const info = SUBCATEGORIA_INFO[className];
-        if (info) return { caneca: info.caneca, subcategoria: className };
-        const normalizado = className.toLowerCase().replace(/\s/g, '_');
-        if (CANECA_FALLBACK[normalizado]) return { caneca: CANECA_FALLBACK[normalizado], subcategoria: null };
-        return null;
-    }
-
-    function infoCanecaParaMensaje(caneca, subcategoria) {
-        if (subcategoria && SUBCATEGORIA_INFO[subcategoria]) {
-            const info = SUBCATEGORIA_INFO[subcategoria];
-            const nombreCaneca = caneca === 'canecaBlanca' ? 'Blanca' : caneca === 'canecaNegra' ? 'Negra' : 'Verde';
-            return { nombre: `${info.emoji} Caneca ${nombreCaneca} — ${info.nombre}`, descripcion: info.descripcion };
-        }
-        if (caneca === 'canecaBlanca') return { nombre: 'Caneca Blanca', descripcion: 'para materiales reciclables.' };
-        if (caneca === 'canecaNegra')  return { nombre: 'Caneca Negra',  descripcion: 'para residuos no aprovechables.' };
-        if (caneca === 'canecaVerde')  return { nombre: 'Caneca Verde',  descripcion: 'para residuos orgánicos aprovechables.' };
-        return { nombre: 'desconocida', descripcion: '' };
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // PASSWORD / ADMIN
-    // ─────────────────────────────────────────────────────────────────────────
-    function getStoredPassword()  { return localStorage.getItem(PASSWORD_KEY); }
-    function setStoredPassword(p) { localStorage.setItem(PASSWORD_KEY, p); }
-
-    function showPasswordOverlay(isSetup) {
-        passwordInput.value = '';
-        passwordPanelTitle.textContent = isSetup ? 'Establece tu contraseña de administrador' : 'Ingresa la contraseña de administrador';
-        passwordInput.placeholder = isSetup ? 'Nueva contraseña' : 'Contraseña';
-        passwordOverlay.style.display = 'flex';
-        requestAnimationFrame(() => requestAnimationFrame(() => passwordOverlay.classList.add('visible')));
-        passwordInput.focus();
-    }
-    function hidePasswordOverlay() {
-        passwordOverlay.classList.remove('visible');
-        setTimeout(() => { passwordOverlay.style.display = 'none'; }, 300);
-    }
-
-    function handleAdminSwitchChange() {
-        if (adminSwitch.checked) showPasswordOverlay(!getStoredPassword());
-        else { adminModeEnabled = false; updateUIAfterAdminModeChange(); }
-    }
-
-    function handlePasswordSubmit() {
-        const entered = passwordInput.value;
-        const stored  = getStoredPassword();
-        if (stored) {
-            if (entered === stored) { adminModeEnabled = true; hidePasswordOverlay(); hideConfigOverlay(); updateUIAfterAdminModeChange(); }
-            else {
-                showToast('Contraseña incorrecta.', 'error');
-                haptic([50, 50, 50]);
-                adminSwitch.checked = false; hidePasswordOverlay(); hideConfigOverlay(); adminModeEnabled = false; updateUIAfterAdminModeChange();
-            }
-        } else {
-            if (entered) { setStoredPassword(entered); adminModeEnabled = true; hidePasswordOverlay(); hideConfigOverlay(); updateUIAfterAdminModeChange(); }
-            else showToast('La contraseña no puede estar vacía.', 'warning');
-        }
-    }
-
-    function handlePasswordCancel() {
-        adminSwitch.checked = false; hidePasswordOverlay(); hideConfigOverlay();
-        adminModeEnabled = false; updateUIAfterAdminModeChange();
-    }
-
-    function updateUIAfterAdminModeChange() {
-        openCompartmentsBtn.style.display = adminModeEnabled ? 'block' : 'none';
-        if (!adminModeEnabled) configSection.style.display = 'none';
-    }
-
-    function startStream() {
-        const videoElement = document.getElementById("camera-stream");
-        if (videoElement) {
-            videoElement.src = "/video/stream";
-            console.log("Stream iniciado en: " + videoElement.src);
-        } else {
-            console.error("Elemento 'camera-stream' no encontrado en el DOM.");
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // UI HELPERS
-    // ─────────────────────────────────────────────────────────────────────────
-    function showCanecaSelection() {
-        canecaQuestion3.style.display = 'block';
-        canecaQuestion.style.display  = 'block';
-        fadeIn(canecaSelection, 'flex');
-        fadeOut(predictionResultDiv);
-        fadeOut(nextSection);
-        fadeOut(loadingSpinner);
-    }
-    function hideCanecaSelection() {
-        canecaQuestion.style.display  = 'none';
-        canecaQuestion3.style.display = 'none';
-        fadeOut(canecaSelection);
-    }
-    function showConfigOverlay() {
-        configOverlay.style.display = 'flex';
-        requestAnimationFrame(() => requestAnimationFrame(() => configOverlay.classList.add('visible')));
-    }
-    function hideConfigOverlay() {
-        configOverlay.classList.remove('visible');
-        setTimeout(() => { configOverlay.style.display = 'none'; }, 300);
-    }
-
-    function resetUI() {
-        const fCanvas = document.getElementById("frozen-canvas");
-        if (fCanvas) fCanvas.style.display = "none";
-        if (cameraStream) cameraStream.style.opacity = '1'; 
-        if (cameraStream) cameraStream.style.display = "block";
-
-        fadeOut(panelConsejoResultado);
-        fadeOut(predictionResultDiv);
-        fadeOut(nextSection);
-        fadeOut(loadingSpinner);
-        hideLaser();
-        stopLoadingTimers();
-
-        showCanecaSelection();
-        
-        if (typeof startStream === "function") startStream(); 
-        
-        if (ledPinGlobal !== "") {
-            fetch(`/led_off?pin=${ledPinGlobal}`)
-                .then(() => { ledPinGlobal = ""; })
-                .catch(err => dbg("Error apagando LED: " + err));
-        }
-        
-        dbg("UI restablecida por completo.");
-    }
-
-    let frozenCanvas = null;
-
-    function freezeFrame() {
-        frozenCanvas = document.getElementById('frozen-canvas');
-        if (!frozenCanvas || !cameraStream) return;
-        frozenCanvas.width  = cameraStream.videoWidth  || cameraStream.naturalWidth  || 640;
-        frozenCanvas.height = cameraStream.videoHeight || cameraStream.naturalHeight || 480;
-        const fctx = frozenCanvas.getContext('2d');
-        fctx.drawImage(cameraStream, 0, 0, frozenCanvas.width, frozenCanvas.height);
-        // Ocultar el stream en vivo y mostrar el canvas estático
-        cameraStream.style.opacity = '0';
-        frozenCanvas.style.display = 'block';
-        frozenCanvas.style.width   = cameraStream.offsetWidth + 'px';
-        frozenCanvas.style.height  = 'auto';
-    }
-
-    function unfreezeFrame() {
-        if (frozenCanvas) frozenCanvas.style.display = 'none';
-        if (cameraStream)  cameraStream.style.opacity = '1';
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // JUGAR UN JUEGO — overlay con countdown 4→1
-    // ─────────────────────────────────────────────────────────────────────────
-    function launchGameOverlay() {
-        const overlay = document.getElementById('game-overlay');
-        const countEl = document.getElementById('game-countdown');
-        if (!overlay || !countEl) return;
-        overlay.classList.add('active');
-        let count = 4;
-        countEl.textContent = count;
-        const timer = setInterval(() => {
-            count--;
-            countEl.textContent = count;
-            if (count <= 0) {
-                clearInterval(timer);
-                overlay.classList.remove('active');
-                resetUI();
-            }
-        }, 1000);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDER RESULTADO — función separada para generar el HTML del resultado
-    // ─────────────────────────────────────────────────────────────────────────
-    function renderResultadoUI(correct, nombre, descripcion, pct, predictedCaneca) {
-        const badgeClass = predictedCaneca === 'canecaBlanca' ? 'blanca'
-                         : predictedCaneca === 'canecaNegra'  ? 'negra'
-                         : predictedCaneca === 'canecaVerde'  ? 'verde' : 'fondo';
-        const winnerIdx = ['canecaBlanca','canecaNegra','canecaVerde','canecaFondo'].indexOf(predictedCaneca);
-
-        const barras = [
-            { label:'Blanca', cls:'blanca', pct: pct.canecaBlanca, idx:0 },
-            { label:'Negra',  cls:'negra',  pct: pct.canecaNegra,  idx:1 },
-            { label:'Verde',  cls:'verde',  pct: pct.canecaVerde,  idx:2 },
-            { label:'Fondo',  cls:'fondo',  pct: pct.canecaFondo,  idx:3 },
-        ];
-        const barrasHTML = barras.map(b => `
-            <div class="prob-bar-row">
-                <span class="prob-bar-label">${b.label}</span>
-                <div class="prob-bar-track">
-                    <div class="prob-bar-fill prob-bar-fill--${b.cls}${b.idx === winnerIdx ? ' winner' : ''}"
-                         style="width:0%" data-target="${b.pct}%"></div>
-                </div>
-                <span class="prob-bar-pct">${b.pct}%</span>
-            </div>
-        `).join('');
-
-        predictionResultDiv.innerHTML = `
-            <div class="result-icon-wrap result-icon-wrap--${correct ? 'correct' : 'incorrect'}">
-                ${correct ? '✔' : '✖'}
-            </div>
-            <div class="result-label result-label--${correct ? 'correct' : 'incorrect'}">
-                ${correct ? '¡Correcto!' : '¡Incorrecto!'}
-            </div>
-            <span class="result-caneca-badge result-caneca-badge--${badgeClass}">${nombre}</span>
-            <p class="result-desc">${descripcion}${correct ? '<br>🎉 ¡Bien hecho! Clasificaste correctamente el residuo.' : ''}</p>
-            <div class="prob-chart">
-                <div class="prob-chart__title">Confianza del modelo</div>
-                ${barrasHTML}
-            </div>
-            <div class="result-buttons">
-                <button class="btn-play-game" onclick="launchGameOverlay()">
-                    🎮 Jugar un Juego
-                </button>
-                <button class="btn-back-menu" onclick="resetUI()">
-                    🔄 Volver al menú
-                </button>
-            </div>
-        `;
-
-        // Animar barras con un pequeño delay para la transición CSS
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                predictionResultDiv.querySelectorAll('.prob-bar-fill').forEach(bar => {
-                    bar.style.width = bar.dataset.target;
-                });
-            });
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // PREDICCIÓN
-    // ─────────────────────────────────────────────────────────────────────────
-    async function predictAndEvaluate(selectedCaneca) {
-        fadeIn(loadingSpinner, 'flex');
-        showLaser();
-        startLoadingTimers();
-
-        try {
-            dbg("Capturando y congelando fotograma del stream...");
-            
-            // ── REQUISITO 4: CONGELAR EL FRAME ACTUAL ──
-            const frozenCanvas = document.getElementById("frozen-canvas");
-            if (frozenCanvas) {
-                frozenCanvas.width = cameraStream.naturalWidth || 224;
-                frozenCanvas.height = cameraStream.naturalHeight || 224;
-                const fCtx = frozenCanvas.getContext("2d");
-                fCtx.drawImage(cameraStream, 0, 0, frozenCanvas.width, frozenCanvas.height);
-                frozenCanvas.style.display = "block"; // Muestra el frame estático encima
-            }
-
-            // Capturamos la matriz en base64 directamente desde el render estático del canvas
-            const canvasTmp = document.createElement("canvas");
-            canvasTmp.width = cameraStream.naturalWidth || 224;
-            canvasTmp.height = cameraStream.naturalHeight || 224;
-            const ctxTmp = canvasTmp.getContext("2d");
-            ctxTmp.drawImage(cameraStream, 0, 0, canvasTmp.width, canvasTmp.height);
-            const base64Image = canvasTmp.toDataURL("image/jpeg").split(',')[1];
-
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imagen: base64Image }),
-            });
-
-            const result = await response.json();
-            console.log(result);
-            if (!response.ok) throw new Error(`API error ${response.status}`);
-
-            if (result.index !== undefined && Array.isArray(result.probabilidades)) {
-                const categorias = ["Caneca_blanca", "Caneca_negra", "Caneca_verde", "Caneca_fondo"];
-                result.prediccion = [{
-                    clase: categorias[result.index],
-                    confianza: result.probabilidades[result.index]
-                }];
-            }
-
-            const probs = result.probabilidades || [0, 0, 0, 0];
-            stopLoadingTimers();
-            hideLaser();
-            fadeOut(loadingSpinner);
-            haptic([200]);
-
-            if (!result.prediccion || result.prediccion.length === 0) {
-                predictionResultDiv.innerHTML = '<span class="prediction-result__message--incorrect">No se detectó un objeto claro.</span>';
-                fadeIn(predictionResultDiv, 'block');
-                setTimeout(resetUI, 3000);
-                return;
-            }
-
-            const confianzaPorCaneca = { canecaBlanca: 0, canecaNegra: 0, canecaVerde: 0, canecaFondo: 0 };
-            let mejorSubcat = null;
-            let mejorConfianza = -1;
-
-            result.prediccion.forEach(p => {
-                const confianza  = p.confianza || 0;
-                const className  = (p.clase || '').trim();
-                const resolucion = resolverCanecaDesdeClase(className);
-                if (resolucion) {
-                    confianzaPorCaneca[resolucion.caneca] += confianza;
-                    if (confianza > mejorConfianza) {
-                        mejorConfianza = confianza;
-                        mejorSubcat    = resolucion.subcategoria || className;
-                    }
-                }
-            });
-
-            const totalConfianza = probs[0] + probs[1] + probs[2] + probs[3];
-            let predictedCaneca = Object.entries(confianzaPorCaneca).sort(([,a],[,b]) => b-a)[0][0];
-
-            const pct = {
-                canecaBlanca: Math.round(((probs[0]||0) / (totalConfianza||1)) * 100),
-                canecaNegra:  Math.round(((probs[1]||0) / (totalConfianza||1)) * 100),
-                canecaVerde:  Math.round(((probs[2]||0) / (totalConfianza||1)) * 100),
-                canecaFondo:  Math.round(((probs[3]||0) / (totalConfianza||1)) * 100),
-            };
-
-            ledPinGlobal = predictedCaneca === 'canecaBlanca' ? "45" : predictedCaneca === 'canecaNegra' ? "47" : predictedCaneca === 'canecaVerde' ? "48" : "";
-            if (ledPinGlobal) fetch(`/led_on?pin=${ledPinGlobal}`).catch(err => dbg("LED err"));
-
-            mostrarConsejoResultado(mejorSubcat, predictedCaneca);
-            const { nombre, descripcion } = infoCanecaParaMensaje(predictedCaneca, mejorSubcat);
-
-            // Mapeo de estilos para el Badge de color
-            const badgeMap = {
-                canecaBlanca: { label: "Caneca Blanca", cls: "badge-blanca" },
-                canecaNegra: { label: "Caneca Negra", cls: "badge-negra" },
-                canecaVerde: { label: "Caneca Verde", cls: "badge-verde" },
-                canecaFondo: { label: "Fondo / Vacío", cls: "badge-fondo" }
-            };
-            const bData = badgeMap[predictedCaneca] || { label: nombre, cls: "badge-blanca" };
-
-            // ── REQUISITO 2: INTERFAZ REDISEÑADA CON GRÁFICAS GRADIENTES Y NUEVOS BOTONES ──
-            const esCorrecto = (selectedCaneca === predictedCaneca);
-
-            if (esCorrecto) {
-                launchConfetti();
-                showToast('🎉 ¡Correcto! ¡Clasificaste bien el residuo!', 'success');
-            } else {
-                showToast('❌ Incorrecto. ¡Sigue aprendiendo!', 'error');
-            }
-
-            // Llamamos a la función que creaste en la línea 1409 con todos los gradientes y animaciones
-            renderResultadoUI(esCorrecto, bData.label, descripcion, pct, predictedCaneca);
-
-            fadeIn(predictionResultDiv, 'block');
-            hideCanecaSelection();
-
-        } catch (error) {
-            stopLoadingTimers();
-            hideLaser();
-            fadeOut(loadingSpinner);
-            resetUI();
-            showToast('⚠️ Error de comunicación con la IA.', 'error', 4000);
-        }
-    }
-
-    function handleCanecaSelection(selectedCaneca) {
-        actualizarConsejoPorCaneca(selectedCaneca);
-        hideCanecaSelection();
-        //fadeOut(predictionResultDiv);
-        fadeOut(nextSection);
-        predictAndEvaluate(selectedCaneca);
-    }
-
-    // ── REQUISITO 3: FUNCIÓN LOGIC PARA EL MODO DE JUEGO (COUNTDOWN OVERLAY) ──
-    function iniciarCuentaRegresivaJuego() {
-        const overlay = document.getElementById('countdown-overlay');
-        const textEl = document.getElementById('countdown-text');
-        if (!overlay || !textEl) return;
-
-        overlay.classList.add('active');
-        let count = 4;
-        textEl.innerText = count;
-        textEl.style.transform = "scale(1)";
-
-        haptic([100]);
-
-        const interval = setInterval(() => {
-            count--;
-            if (count > 0) {
-                textEl.innerText = count;
-                textEl.style.transform = "scale(0.5)";
-                setTimeout(() => textEl.style.transform = "scale(1)", 40);
-                haptic([60]);
-            } else {
-                clearInterval(interval);
-                overlay.classList.remove('active');
-                resetUI(); // Cierra el juego y restaura el stream vivo
-            }
-        }, 1000);
-    }
-
-    function adjustCameraContainerSize(framesize) {
-        const container = document.getElementById("camera-container");
-        if (!container) return;
-
-        // Ajusta el tamaño basado en el valor del framesize (ejemplo básico)
-        if (framesize === "10") { // UXGA
-            container.style.width = "1600px";
-        } else {
-            container.style.width = "640px";
-        }
-        console.log("Tamaño de cámara ajustado a:", framesize);
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        configSection        = document.getElementById('configSection');
-        cameraStream         = document.getElementById('camera-stream');
-        cameraContainer      = document.getElementById('camera-container');
-        ledGroup             = document.getElementById('led-group');
-        agc                  = document.getElementById('agc');
-        agcGain              = document.getElementById('agc_gain-group');
-        gainCeiling          = document.getElementById('gainceiling-group');
-        aec                  = document.getElementById('aec');
-        exposure             = document.getElementById('aec_value-group');
-        awb                  = document.getElementById('awb_gain');
-        wb                   = document.getElementById('wb_mode-group');
-        framesizeSelect      = document.getElementById('framesize');
-        canecaQuestion3      = document.getElementById('caneca-question3');
-        canecaQuestion       = document.getElementById('caneca-question');
-        canecaSelection      = document.getElementById('caneca-selection');
-        predictionResultDiv  = document.getElementById('prediction-result');
-        nextSection          = document.getElementById('next-section');
-        nextSectionTitle     = document.getElementById('next-section-title');
-        nextSectionMessage   = document.getElementById('next-section-message');
-        configButton         = document.getElementById('config-button');
-        configOverlay        = document.getElementById('config-overlay');
-        adminSwitch          = document.getElementById('admin-switch');
-        passwordOverlay      = document.getElementById('password-overlay');
-        passwordPanelTitle   = document.getElementById('password-panel-title');
-        passwordInput        = document.getElementById('password-input');
-        passwordSubmitButton = document.getElementById('password-submit');
-        passwordCancelButton = document.getElementById('password-cancel');
-        openCompartmentsBtn  = document.getElementById('open-compartments-button');
-        modelErrorDiv        = document.getElementById('model-error');
-        loadingSpinner       = document.getElementById('loading-spinner');
-        textoConsejoLateral  = document.getElementById('texto-consejo-lateral');
-        panelConsejoResultado = document.getElementById('panel-consejo-resultado');
-        textoConsejoResultado = document.getElementById('texto-consejo-resultado');
-
-        textoConsejoLateral.textContent = CONSEJOS_LATERALES[consejoIndex];
-        setInterval(rotarConsejoLateral, 7000);
-
-        adjustCameraContainerSize(framesizeSelect.value);
-
-        document.querySelectorAll('.caneca-button').forEach(btn => {
-            btn.addEventListener('click', () => handleCanecaSelection(btn.dataset.caneca));
-        });
-
-        configButton.addEventListener('click', showConfigOverlay);
-        adminSwitch.addEventListener('change', handleAdminSwitchChange);
-        passwordSubmitButton.addEventListener('click', handlePasswordSubmit);
-        passwordCancelButton.addEventListener('click', handlePasswordCancel);
-        passwordInput.addEventListener('keypress', e => { if (e.key === 'Enter') handlePasswordSubmit(); });
-
-        document.getElementById('set-reg').onclick = () => {
-            setReg(parseInt(document.getElementById('reg-addr').value), 0,
-                   parseInt(document.getElementById('reg-mask').value),
-                   parseInt(document.getElementById('reg-value').value),
-                   (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-        };
-        document.getElementById('get-reg').onclick = () => {
-            const span = document.getElementById('get-reg-value');
-            getReg(parseInt(document.getElementById('get-reg-addr').value), 0,
-                   parseInt(document.getElementById('get-reg-mask').value),
-                   (code, txt) => { span.innerHTML = code !== 200 ? `Error[${code}]: ${txt}` : `0x${parseInt(txt).toString(16)} (${txt})`; });
-        };
-        document.getElementById('set-xclk').onclick = () => {
-            setXclk(parseInt(document.getElementById('xclk').value),
-                    (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-        };
-        document.getElementById('set-resolution').onclick = () => {
-            const sx = parseInt(document.getElementById('start-x').value);
-            const ox = parseInt(document.getElementById('offset-x').value);
-            const oy = parseInt(document.getElementById('offset-y').value);
-            const tx = parseInt(document.getElementById('total-x').value);
-            const ty = parseInt(document.getElementById('total-y').value);
-            const outx = parseInt(document.getElementById('output-x').value);
-            const outy = parseInt(document.getElementById('output-y').value);
-            fetchUrl(`${baseHost}/resolution?sx=${sx}&sy=0&ex=0&ey=0&offx=${ox}&offy=${oy}&tx=${tx}&ty=${ty}&ox=${outx}&oy=${outy}&scale=0&binning=0`,
-                     (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-        };
-
-        document.querySelectorAll('.default-action').forEach(el => el.addEventListener('change', () => updateConfig(el)));
-        document.querySelectorAll('.reg-action').forEach(el => {
-            if (el.type === 'text') {
-                el.onkeyup = e => {
-                    if (e.keyCode === 13) {
-                        setReg(parseInt(el.attributes.reg?.nodeValue || 0), parseInt(el.attributes.offset?.nodeValue || 0),
-                               parseInt(el.attributes.mask?.nodeValue || 255), parseInt(el.value),
-                               (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-                    }
-                };
-            } else {
-                el.onchange = () => {
-                    const mask = parseInt(el.attributes.mask?.nodeValue || 255);
-                    setReg(parseInt(el.attributes.reg?.nodeValue || 0), parseInt(el.attributes.offset?.nodeValue || 0),
-                           mask, el.type === 'checkbox' ? (el.checked ? mask : 0) : parseInt(el.value),
-                           (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-                };
-            }
-        });
-
-        // ✅ Verificar health del servidor Flask (no ESP32 directamente)
-        fetch(`/health`)
-            .then(r => r.json())
-            .then(state => {
-                if (!state.modelo) {
-                    showToast('⚠️ El modelo de IA no está cargado en el servidor.', 'warning', 6000);
-                }
-                // Los config del ESP32 se ignoran cuando Flask es proxy
-                adjustCameraContainerSize(framesizeSelect.value);
-            })
-            .catch(() => {
-                showToast('⚠️ Error conectando al servidor Flask.', 'error', 5000);
-                cameraStream.alt = "Servidor no disponible.";
-            });
-
-        startStream();
-        showCanecaSelection();
-        updateUIAfterAdminModeChange();
-
-        // ✅ Verificar que el backend Flask está listo
-        dbg("Verificando servidor Flask...");
-        fetch('/health', { method: 'GET' })
-            .then(r => r.json())
-            .then(d => dbg(`Flask OK — modelo: ${d.modelo ? '✓ cargado' : '⚠️ NO cargado'}`))
-            .catch(e => dbg("Flask no responde: " + e.message));
+    if (!resp.ok) throw new Error(`Error API ${resp.status}`);
+
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+
+    // Apagar overlay
+    overlayAn.classList.remove('activo');
+    mostrarLaser(false);
+
+    // Procesar resultado
+    procesarResultado(data, caneca, frozenCanvas);
+
+  } catch (err) {
+    console.error('Error en predicción:', err);
+    overlayAn.classList.remove('activo');
+    mostrarLaser(false);
+    descongelarFrame();
+    capturandoImagen = false;
+    mostrarErrorIA();
+    apagrarLed();
+  }
+}
+
+let textoTimer = null;
+function animarTextoAnalizando() {
+  const msgs = [
+    'ANALIZANDO IMAGEN...\nIA procesando...',
+    'DETECTANDO RESIDUO...\nEspera un momento...',
+    'CLASIFICANDO...\nCasi listo...',
+  ];
+  let i = 0;
+  const el = document.getElementById('texto-analizando');
+  if (el) el.textContent = msgs[0].replace('\n', '\n');
+  textoTimer = setInterval(() => {
+    i = (i + 1) % msgs.length;
+    if (el) el.innerHTML = msgs[i].replace('\n', '<br>');
+  }, 2500);
+}
+
+function procesarResultado(data, seleccionada, fotoCanvas) {
+  if (textoTimer) { clearInterval(textoTimer); textoTimer = null; }
+
+  const probs = data.probabilidades || [0, 0, 0, 0];
+  const total = probs.reduce((a, b) => a + b, 0) || 1;
+
+  // Determinar caneca predicha
+  let predictedRaw = (data.clase || '').trim().toLowerCase().replace(/\s/g, '_');
+  let predicha = CANECA_FALLBACK[predictedRaw] || CANECA_FALLBACK[predictedRaw.replace('caneca_', '')];
+
+  if (!predicha) {
+    const idx = data.index !== undefined ? data.index : probs.indexOf(Math.max(...probs));
+    predicha = ['canecaBlanca','canecaNegra','canecaVerde','canecaFondo'][idx] || 'canecaFondo';
+  }
+
+  const esCorrecto = (seleccionada === predicha);
+  const info = INFO_CANECA[predicha] || INFO_CANECA['canecaFondo'];
+
+  // Copiar foto al canvas de resultado
+  const fotoDest = document.getElementById('foto-capturada');
+  if (fotoDest && fotoCanvas) {
+    fotoDest.width  = fotoCanvas.width;
+    fotoDest.height = fotoCanvas.height;
+    fotoDest.getContext('2d').drawImage(fotoCanvas, 0, 0);
+  }
+
+  // Barras de confianza
+  const pcts = probs.map(p => Math.round((p / total) * 100));
+  const barIds   = ['barra-blanca','barra-negra','barra-verde','barra-fondo'];
+  const pctIds   = ['pct-blanca','pct-negra','pct-verde','pct-fondo'];
+  // Limpiar clases ganador
+  barIds.forEach(id => document.getElementById(id).classList.remove('ganador'));
+  // Ir a pantalla resultado ANTES de animar barras (para que la transición CSS sea visible)
+  irAResultado();
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    barIds.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.width = pcts[i] + '%';
+        if (i === info.idx) el.classList.add('ganador');
+      }
     });
-    // ─────────────────────────────────────────────────────────────────────────
-    // SALVAPANTALLAS — 10 segundos de inactividad
-    // ─────────────────────────────────────────────────────────────────────────
-    (function() {
-        const INACTIVITY_MS = 10000; // 10 segundos
-        const ssEl    = document.getElementById('screensaver');
-        const canvas  = document.getElementById('screensaver-canvas');
-        const ctx     = canvas.getContext('2d');
-        let ssTimer   = null;
-        let ssActive  = false;
-        let animFrame = null;
+    pctIds.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = pcts[i] + '%';
+    });
+  }));
 
-        // ── Partículas de estrella ──────────────────────────────────────────
-        const particles = [];
-        const PARTICLE_COUNT = 160;
+  // Veredicto
+  const iconoEl  = document.getElementById('veredicto-icono');
+  const labelEl  = document.getElementById('veredicto-label');
+  const subEl    = document.getElementById('veredicto-sub');
 
-        function resizeCanvas() {
-            canvas.width  = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
+  iconoEl.className = `veredicto-icono ${esCorrecto ? 'correcto' : 'incorrecto'}`;
+  iconoEl.textContent = esCorrecto ? '✔' : '✖';
+  labelEl.className = `veredicto-label ${esCorrecto ? 'correcto' : 'incorrecto'}`;
+  labelEl.textContent = esCorrecto ? '¡CORRECTO!' : '¡INCORRECTO!';
 
-        function initParticles() {
-            particles.length = 0;
-            for (let i = 0; i < PARTICLE_COUNT; i++) {
-                particles.push(createParticle(true));
-            }
-        }
+  const infoSeleccionada = INFO_CANECA[seleccionada] || {};
+  subEl.textContent = esCorrecto
+    ? `Elegiste: ${infoSeleccionada.nombre || seleccionada} · ¡Bien hecho!`
+    : `Elegiste: ${infoSeleccionada.nombre || seleccionada} · La IA detectó otra caneca`;
 
-        function createParticle(randomY = false) {
-            const colors = ['#3498db','#2ecc71','#9b59b6','#e67e22','#1abc9c','#ffffff','#f1c40f'];
-            return {
-                x:     Math.random() * canvas.width,
-                y:     randomY ? Math.random() * canvas.height : -5,
-                r:     0.5 + Math.random() * 2.5,
-                speed: 0.3 + Math.random() * 1.2,
-                opacity: 0.4 + Math.random() * 0.6,
-                color:  colors[Math.floor(Math.random() * colors.length)],
-                drift:  (Math.random() - 0.5) * 0.4,
-                pulse:  Math.random() * Math.PI * 2,
-            };
-        }
+  // Badge caneca detectada
+  const badge = document.getElementById('caneca-detectada-badge');
+  badge.className = `caneca-detectada-badge ${info.cls}`;
+  badge.innerHTML = `${info.emoji} <strong>${info.nombre}</strong>`;
 
-        function drawParticles(ts) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Descripción
+  document.getElementById('resultado-desc').textContent = info.desc;
 
-            // Fondo degradado oscuro
-            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            grad.addColorStop(0, '#050a12');
-            grad.addColorStop(1, '#0a0f1e');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Jaguapanela resultado
+  const estadoJagua = esCorrecto ? 'feliz' : 'triste';
+  setJaguaEstado('jagua-resultado', estadoJagua);
+  document.getElementById('burbuja-resultado').textContent =
+    fraseAleatoria(esCorrecto ? 'correcto' : 'incorrecto');
 
-            particles.forEach((p, i) => {
-                // Pulso de brillo
-                const glow = Math.sin(p.pulse + ts * 0.001) * 0.3 + 0.7;
-                ctx.globalAlpha = p.opacity * glow;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.shadowBlur  = p.r * 6;
-                ctx.shadowColor = p.color;
-                ctx.fill();
-                ctx.shadowBlur = 0;
+  // Confetti si es correcto
+  if (esCorrecto) {
+    lanzarConfetti();
+    if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+  } else {
+    if (navigator.vibrate) navigator.vibrate(150);
+  }
 
-                // Mover partícula
-                p.y += p.speed;
-                p.x += p.drift;
+  // LED
+  const pinMap = { canecaBlanca: '45', canecaNegra: '47', canecaVerde: '48' };
+  ledPinActivo = pinMap[predicha] || '';
+  if (ledPinActivo) fetch(`/led_on?pin=${ledPinActivo}`).catch(() => {});
 
-                if (p.y > canvas.height + 5) {
-                    particles[i] = createParticle(false);
-                }
-            });
+  capturandoImagen = false;
+}
 
-            ctx.globalAlpha = 1;
-        }
+function apagrarLed() {
+  if (ledPinActivo) {
+    fetch(`/led_off?pin=${ledPinActivo}`).catch(() => {});
+    ledPinActivo = '';
+  }
+}
 
-        // Líneas de conexión entre partículas cercanas
-        function drawConnections() {
-            const maxDist = 100;
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x;
-                    const dy = particles[i].y - particles[j].y;
-                    const d  = Math.sqrt(dx*dx + dy*dy);
-                    if (d < maxDist) {
-                        ctx.globalAlpha = (1 - d / maxDist) * 0.08;
-                        ctx.strokeStyle = '#3498db';
-                        ctx.lineWidth   = 0.5;
-                        ctx.beginPath();
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-            ctx.globalAlpha = 1;
-        }
+/* ════════════════════════════════════════════════
+   CONFETTI
+════════════════════════════════════════════════ */
+function lanzarConfetti() {
+  const container = document.getElementById('confetti-container');
+  const colores = ['#2ecc71','#f5c842','#e53935','#1976d2','#f07d2a','#9575cd','#fff'];
+  for (let i = 0; i < 70; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-pieza';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.backgroundColor = colores[Math.floor(Math.random() * colores.length)];
+    p.style.width  = (7 + Math.random() * 7) + 'px';
+    p.style.height = (9 + Math.random() * 9) + 'px';
+    const dur = 2 + Math.random() * 1.5;
+    p.style.animationDuration  = dur + 's';
+    p.style.animationDelay     = Math.random() * 0.7 + 's';
+    container.appendChild(p);
+    setTimeout(() => p.remove(), (dur + 1) * 1000);
+  }
+}
 
-        function animateScreensaver(ts) {
-            drawParticles(ts);
-            drawConnections();
-            animFrame = requestAnimationFrame(animateScreensaver);
-        }
+/* ════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════ */
+function toast(msg, tipo = '', dur = 3000) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + tipo;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('saliendo');
+    setTimeout(() => el.remove(), 350);
+  }, dur);
+}
 
-        // ── Mostrar / Ocultar ───────────────────────────────────────────────
-        function showScreensaver() {
-            if (ssActive) return;
-            ssActive = true;
-            resizeCanvas();
-            initParticles();
-            ssEl.classList.add('active');
-            animFrame = requestAnimationFrame(animateScreensaver);
-        }
+/* ════════════════════════════════════════════════
+   CONFIGURACIÓN
+════════════════════════════════════════════════ */
+function abrirConfig() {
+  document.getElementById('overlay-config').classList.add('activo');
+}
+function cerrarConfig() {
+  document.getElementById('overlay-config').classList.remove('activo');
+}
+function guardarConfig() {
+  const baseHost = window.location.origin;
+  const params = {
+    framesize:  document.getElementById('cfg-framesize').value,
+    quality:    document.getElementById('cfg-quality').value,
+    brightness: document.getElementById('cfg-brightness').value,
+    contrast:   document.getElementById('cfg-contrast').value,
+    saturation: document.getElementById('cfg-saturation').value,
+    hmirror:    document.getElementById('cfg-hmirror').value,
+    vflip:      document.getElementById('cfg-vflip').value,
+    led_intensity: document.getElementById('cfg-led').value,
+  };
+  const promises = Object.entries(params).map(([k, v]) =>
+    fetch(`${baseHost}/control?var=${k}&val=${v}`).catch(() => {})
+  );
+  // Reg set si hay valores
+  const addr = document.getElementById('cfg-reg-addr').value;
+  const mask = document.getElementById('cfg-reg-mask').value;
+  const val  = document.getElementById('cfg-reg-val').value;
+  if (addr && mask && val) {
+    promises.push(
+      fetch(`${baseHost}/reg?regaddr=${addr}&mask=${mask}&val=${val}`).catch(() => {})
+    );
+  }
+  Promise.all(promises).then(() => {
+    toast('✅ Configuración aplicada', 'exito');
+    cerrarConfig();
+    reiniciarStream();
+  });
+}
 
-        function hideScreensaver() {
-            if (!ssActive) return;
-            ssActive = false;
-            ssEl.classList.remove('active');
-            if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-            resetInactivityTimer();
-        }
+/* ════════════════════════════════════════════════
+   HEALTH CHECK
+════════════════════════════════════════════════ */
+function verificarHealth() {
+  fetch('/health')
+    .then(r => r.json())
+    .then(d => {
+      if (!d.modelo) {
+        toast('⚠ El modelo de IA no está cargado en el servidor', '', 6000);
+      }
+    })
+    .catch(() => {
+      toast('⚠ No se puede conectar al servidor Flask', 'error', 5000);
+    });
+}
 
-        // ── Timer de inactividad ────────────────────────────────────────────
-        function resetInactivityTimer() {
-            clearTimeout(ssTimer);
-            ssTimer = setTimeout(showScreensaver, INACTIVITY_MS);
-        }
+/* ════════════════════════════════════════════════
+   SALVAPANTALLAS — partículas pixel
+════════════════════════════════════════════════ */
+(function initSS() {
+  const INACTIVIDAD_MS = 60000; // 60 segundos
+  const ssEl   = document.getElementById('pantalla-ss');
+  const canvas = document.getElementById('ss-canvas');
+  const ctx    = canvas.getContext('2d');
 
-        // ── Eventos de actividad ────────────────────────────────────────────
-        const activityEvents = ['mousemove','mousedown','keydown','touchstart','touchmove','scroll','wheel','click'];
-        activityEvents.forEach(evt => {
-            document.addEventListener(evt, () => {
-                if (ssActive) hideScreensaver();
-                else resetInactivityTimer();
-            }, { passive: true });
-        });
+  let ssTimer = null;
+  let animId  = null;
+  let particulas = [];
+  const N = 120;
 
-        window.addEventListener('resize', resizeCanvas);
+  function resize() {
+    canvas.width  = 1024;
+    canvas.height = 600;
+  }
 
-            // Arrancar el timer al cargar
-            resetInactivityTimer();
-        })();
+  function crearParticula(randomY = false) {
+    const cols = ['#4fc472','#f5c842','#c47a3a','#1976d2','#9575cd','#ffffff'];
+    return {
+      x:     Math.random() * 1024,
+      y:     randomY ? Math.random() * 600 : -5,
+      r:     0.8 + Math.random() * 2,
+      vy:    0.4 + Math.random() * 1,
+      vx:    (Math.random() - 0.5) * 0.5,
+      op:    0.3 + Math.random() * 0.7,
+      color: cols[Math.floor(Math.random() * cols.length)],
+      fase:  Math.random() * Math.PI * 2,
+    };
+  }
 
-        document.addEventListener('click', function() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => console.log(err));
-            }
-        }, { once: true }); // Se activa con el primer click del usuario
-    </script>
+  function initParticulas() {
+    particulas = Array.from({ length: N }, () => crearParticula(true));
+  }
 
-    <div id="countdown-overlay">
-        <div id="countdown-text">4</div>
-    </div>
+  function dibujar(ts) {
+    ctx.clearRect(0, 0, 1024, 600);
 
+    // Fondo oscuro con degradado
+    const grad = ctx.createLinearGradient(0, 0, 1024, 600);
+    grad.addColorStop(0, '#050d08');
+    grad.addColorStop(1, '#081408');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1024, 600);
+
+    // Grid pixel art de fondo
+    ctx.strokeStyle = 'rgba(79,196,114,0.04)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < 1024; x += 32) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 600); ctx.stroke();
+    }
+    for (let y = 0; y < 600; y += 32) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
+    }
+
+    particulas.forEach((p, i) => {
+      const g = Math.sin(p.fase + ts * 0.001) * 0.25 + 0.75;
+      ctx.globalAlpha = p.op * g;
+      ctx.fillStyle   = p.color;
+      ctx.shadowBlur  = p.r * 5;
+      ctx.shadowColor = p.color;
+      // Píxeles cuadrados
+      const pr = Math.max(1, Math.round(p.r));
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), pr * 2, pr * 2);
+      ctx.shadowBlur = 0;
+
+      p.y += p.vy; p.x += p.vx;
+      if (p.y > 605) particulas[i] = crearParticula(false);
+    });
+    ctx.globalAlpha = 1;
+    animId = requestAnimationFrame(dibujar);
+  }
+
+  // Exponer funciones al scope global para el sistema de inactividad
+  window._ssStart = function() {
+    if (pantallaActual === 'ss') return; // ya está en SS
+    apagrarLed();
+    mostrarPantalla('ss');
+    setJaguaEstado('jagua-ss', 'idle');
+    resize();
+    initParticulas();
+    if (animId) cancelAnimationFrame(animId);
+    animId = requestAnimationFrame(dibujar);
+  };
+
+  window._ssStop = function() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+  };
+
+  window.resetearInactividad = function() {
+    clearTimeout(ssTimer);
+    if (pantallaActual !== 'ss') {
+      ssTimer = setTimeout(window._ssStart, INACTIVIDAD_MS);
+    }
+  };
+
+  // Iniciar animación en SS desde el principio
+  resize();
+  initParticulas();
+  animId = requestAnimationFrame(dibujar);
+
+  // Eventos de actividad
+  const eventos = ['touchstart','touchmove','mousedown','mousemove','keydown','click','scroll'];
+  eventos.forEach(ev => {
+    document.addEventListener(ev, () => {
+      if (pantallaActual === 'ss') return;
+      resetearInactividad();
+    }, { passive: true });
+  });
+
+})();
+
+/* ════════════════════════════════════════════════
+   FULLSCREEN al primer toque
+════════════════════════════════════════════════ */
+document.addEventListener('click', function handler() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+  document.removeEventListener('click', handler);
+});
+
+/* ════════════════════════════════════════════════
+   INICIALIZACIÓN
+════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Renderizar Jaguapanela en todas las pantallas
+  setJaguaEstado('jagua-ss',            'idle');
+  setJaguaEstado('jagua-instrucciones', 'idle');
+  setJaguaEstado('jagua-camara',        'idle');
+  setJaguaEstado('jagua-resultado',     'idle');
+  setJaguaEstado('jagua-analizando-wrap','hablar');
+
+  // Verificar estado del servidor
+  verificarHealth();
+
+  // Stream de cámara
+  const img = document.getElementById('camera-stream');
+  if (img) {
+    img.addEventListener('load', onStreamLoad);
+    img.addEventListener('error', onStreamError);
+  }
+
+  // Animar Jaguapanela en SS con parpadeo periódico
+  setInterval(() => {
+    if (pantallaActual === 'ss') {
+      setJaguaEstado('jagua-ss', 'hablar', 600);
+    }
+  }, 5000);
+
+  // Animar Jaguapanela en cámara
+  setInterval(() => {
+    if (pantallaActual === 'camara' && !capturandoImagen) {
+      setJaguaEstado('jagua-camara', 'hablar', 800);
+    }
+  }, 8000);
+});
+</script>
 </body>
 </html>
