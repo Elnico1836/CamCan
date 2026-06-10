@@ -695,7 +695,7 @@ function renderFrame(containerId, frameKey, escala) {
   if (!el) return;
   const px = Math.round(PNG_BASE_PX * escala);
   el.innerHTML =
-    `<img src="jaguapanela/${frameKey}.png"` +
+    `<img src="/static/jaguapanela/${frameKey}.png"` +
     ` width="${px}"` +
     ` style="image-rendering:pixelated;image-rendering:crisp-edges;display:block;"` +
     ` alt="${frameKey}">`;
