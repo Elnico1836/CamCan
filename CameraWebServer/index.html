@@ -1,2237 +1,1198 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Trash Can</title>
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/256/2602/2602768.png" type="image/png">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <style>
-        /* ── CSS VARIABLES ── */
-        :root {
-            --bg: #e0f2f7;
-            --surface: #ffffff;
-            --surface2: #e8f6f3;
-            --border: #ddd;
-            --text-primary: #2c3e50;
-            --text-secondary: #555;
-            --text-muted: #666;
-            --accent: #3498db;
-            --accent-dark: #1f5f85;
-            --green: #2ecc71;
-            --green-dark: #1e8449;
-            --red: #e74c3c;
-            --shadow: rgba(0,0,0,0.15);
-            --overlay-bg: rgba(0,0,0,0.8);
-            --scrollbar-track: #d0e8f5;
-            --scrollbar-thumb: #3498db;
-        }
-        body.dark-theme {
-            --bg: #121212;
-            --surface: #1e1e1e;
-            --surface2: #252525;
-            --border: #333;
-            --text-primary: #e0e0e0;
-            --text-secondary: #aaa;
-            --text-muted: #888;
-            --accent: #4db8ff;
-            --accent-dark: #2980b9;
-            --shadow: rgba(0,0,0,0.5);
-            --overlay-bg: rgba(0,0,0,0.92);
-            --scrollbar-track: #2a2a2a;
-            --scrollbar-thumb: #4db8ff;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024, height=600, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CamCan — Clasificador de Canecas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@700;800;900&display=swap');
 
-        /* ── SCROLLBAR ── */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-dark); }
+:root {
+  --pixel: 'Press Start 2P', 'Courier New', monospace;
+  --body:  'Nunito', 'Arial Rounded MT Bold', Arial, sans-serif;
+  --verde:        #2d9e4f;
+  --verde-claro:  #4fc472;
+  --verde-oscuro: #1a6b32;
+  --negro:        #0d1a0f;
+  --blanco:       #f5fff8;
+  --crema:        #fdf6e3;
+  --amarillo:     #f5c842;
+  --naranja:      #f07d2a;
+  --rojo:         #e53935;
+  --azul:         #1976d2;
+}
 
-        /* ── BASE ── */
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-primary);
-            transition: background-color 0.4s ease, color 0.4s ease;
-        }
-        h1, h2, h3 { color: var(--text-primary); font-weight: 700; margin-bottom: 25px; transition: color 0.4s; }
-        h2 { font-size: 2.2em; margin-top: 30px; margin-bottom: 10px; }
-        h3 { color: var(--text-secondary); font-weight: 400; font-size: 1.2em; margin-bottom: 25px; }
-        p  { color: var(--text-muted); font-size: 1.1em; line-height: 1.6; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* ── DARK MODE TOGGLE ── */
-        #dark-mode-btn {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            border: none;
-            background: var(--surface);
-            box-shadow: 0 2px 10px var(--shadow);
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
-        }
-        #dark-mode-btn:hover { transform: scale(1.1); box-shadow: 0 4px 16px var(--shadow); }
+html, body {
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  font-family: var(--body);
+  background: var(--negro);
+  color: var(--blanco);
+  cursor: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highlight-color: transparent; }
+.pixel { font-family: var(--pixel); }
 
-        /* ── LATERAL PANEL ── */
-        #panel-consejo-lateral {
-            position: fixed;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            width: 260px;
-            padding: 15px 18px;
-            background: linear-gradient(135deg, var(--surface), var(--surface2));
-            border-left: 5px solid var(--green);
-            border-radius: 12px;
-            box-shadow: 0 6px 15px var(--shadow);
-            font-size: 0.95em;
-            color: var(--text-primary);
-            text-align: left;
-            z-index: 9999;
-            transition: background 0.4s, color 0.4s, box-shadow 0.4s;
-        }
-        #panel-consejo-lateral { transition: background 0.4s, color 0.4s, box-shadow 0.4s, border-left-color 0.4s; }
-        #panel-consejo-lateral.caneca-blanca { border-left-color: #2980b9; }
-        #panel-consejo-lateral.caneca-negra  { border-left-color: #2c3e50; }
-        #panel-consejo-lateral.caneca-verde  { border-left-color: #27ae60; }
-        #panel-consejo-lateral.caneca-fondo  { border-left-color: #8e44ad; }
-        body.dark-theme #panel-consejo-lateral.caneca-negra { border-left-color: #7f8c8d; }
-        #texto-consejo-lateral { transition: color 0.5s ease; }
-        #panel-consejo-lateral { transition: background 0.4s, color 0.4s, box-shadow 0.4s, border-left-color 0.5s ease; }
-        #texto-consejo-lateral { transition: color 0.5s ease; }
-        #panel-consejo-lateral.caneca-blanca { border-left-color: #2980b9; }
-        #panel-consejo-lateral.caneca-negra  { border-left-color: #555; }
-        #panel-consejo-lateral.caneca-verde  { border-left-color: #27ae60; }
-        #panel-consejo-lateral.caneca-fondo  { border-left-color: #8e44ad; }
-        body.dark-theme #panel-consejo-lateral.caneca-negra { border-left-color: #95a5a6; }
-        #panel-consejo-lateral strong {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--green-dark);
-            font-size: 1em;
-        }
+/* ── PANTALLAS ── */
+.pantalla { position:absolute; inset:0; width:1024px; height:600px; display:none; overflow:hidden; }
+.pantalla.activa { display:flex; }
 
-        /* ── RESPONSIVE: mobile ── */
-        @media (max-width: 768px) {
-            #panel-consejo-lateral {
-                position: static;
-                transform: none;
-                width: 90%;
-                max-width: 500px;
-                margin: 0 auto 20px auto;
-                right: auto;
-                top: auto;
-            }
-            #dark-mode-btn { top: 10px; right: 10px; }
-        }
+/* ════════════════════════════════════
+   SALVAPANTALLAS
+════════════════════════════════════ */
+#pantalla-ss {
+  background: var(--negro);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#ss-canvas { position:absolute; inset:0; pointer-events:none; }
+.ss-contenido {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+}
+.ss-jagua { margin-bottom: 6px; animation: flotar 3s ease-in-out infinite; }
+.ss-titulo {
+  font-family: var(--pixel);
+  font-size: 32px;
+  color: var(--amarillo);
+  text-shadow: 5px 5px 0 #7a5800, 0 0 40px rgba(245,200,66,.6);
+  margin-bottom: 5px;
+  animation: flotar 3s ease-in-out infinite;
+}
+.ss-sub {
+  font-size: 17px; font-weight: 800;
+  color: rgba(255,255,255,.45);
+  letter-spacing: 4px; text-transform: uppercase;
+  margin-bottom: 32px;
+}
+#btn-escanear {
+  font-family: var(--pixel);
+  font-size: 17px;
+  color: var(--negro);
+  background: var(--amarillo);
+  padding: 20px 52px;
+  border-radius: 6px;
+  box-shadow: 0 8px 0 #7a5800, 0 14px 36px rgba(245,200,66,.45);
+  animation: pulsarBtn 2s ease-in-out infinite;
+  transition: transform .1s, box-shadow .1s;
+}
+#btn-escanear:active { transform: translateY(6px); box-shadow: 0 2px 0 #7a5800; }
+@keyframes flotar { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+@keyframes pulsarBtn {
+  0%,100% { box-shadow: 0 8px 0 #7a5800, 0 14px 36px rgba(245,200,66,.45); }
+  50%     { box-shadow: 0 8px 0 #7a5800, 0 20px 55px rgba(245,200,66,.8); }
+}
+.ss-hint {
+  position: absolute; bottom: 22px;
+  font-family: var(--pixel); font-size: 8px;
+  color: rgba(255,255,255,.22);
+  animation: parpadeoHint 1.8s ease-in-out infinite;
+}
+@keyframes parpadeoHint { 0%,100%{opacity:.22} 50%{opacity:.7} }
 
-        /* ── RESULT PANEL ── */
-        #panel-consejo-resultado {
-            display: none;
-            opacity: 0;
-            margin-top: 15px;
-            max-width: 500px;
-            width: 90%;
-            padding: 14px 20px;
-            background: linear-gradient(135deg, var(--surface), var(--surface2));
-            border-top: 5px solid var(--accent);
-            border-radius: 14px;
-            box-shadow: 0 4px 12px var(--shadow);
-            font-size: 0.95em;
-            color: var(--text-primary);
-            text-align: center;
-            transition: opacity 0.4s ease, background 0.4s, color 0.4s;
-        }
-        #panel-consejo-resultado.blanca { border-top-color: #2980b9; }
-        #panel-consejo-resultado.negra  { border-top-color: #2c3e50; }
-        #panel-consejo-resultado.verde  { border-top-color: #27ae60; }
-        #panel-consejo-resultado.verde  #texto-consejo-resultado { color: #1e8449; }
-        #panel-consejo-resultado.fondo  { border-top-color: #8e44ad; }
-        #panel-consejo-resultado.fondo  #texto-consejo-resultado { color: #6c3483; }
-        body.dark-theme #panel-consejo-resultado.blanca #texto-consejo-resultado { color: #5dade2; }
-        body.dark-theme #panel-consejo-resultado.negra  #texto-consejo-resultado { color: #aab7b8; }
-        body.dark-theme #panel-consejo-resultado.verde  #texto-consejo-resultado { color: #2ecc71; }
-        body.dark-theme #panel-consejo-resultado.fondo  #texto-consejo-resultado { color: #bb8fce; }
+/* ════════════════════════════════════
+   INSTRUCCIONES
+════════════════════════════════════ */
+#pantalla-instrucciones {
+  background: linear-gradient(135deg,#060f08 0%,#112016 60%,#060f08 100%);
+  flex-direction: row;
+  align-items: stretch;
+}
+.instruc-col-jagua {
+  width: 268px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px;
+  background: rgba(0,0,0,.28);
+  border-right: 2px solid rgba(79,196,114,.15);
+  padding: 24px 20px;
+}
+.burbuja {
+  background: var(--crema); color: #1a1a1a;
+  font-size: 15px; font-weight: 800; line-height: 1.55;
+  padding: 16px 18px;
+  border-radius: 16px 16px 16px 4px;
+  box-shadow: 3px 3px 0 rgba(0,0,0,.35);
+  text-align: center; max-width: 215px;
+}
+.instruc-col-pasos {
+  flex: 1;
+  display: flex; flex-direction: column;
+  justify-content: center;
+  padding: 28px 36px; gap: 12px;
+}
+.instruc-titulo {
+  font-family: var(--pixel);
+  font-size: 16px;
+  color: var(--amarillo);
+  text-shadow: 2px 2px 0 #7a5800;
+  margin-bottom: 4px;
+}
+.paso {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: rgba(255,255,255,.05);
+  border: 2px solid rgba(79,196,114,.18);
+  border-radius: 12px; padding: 13px 15px;
+}
+.paso-num {
+  font-family: var(--pixel); font-size: 20px;
+  color: var(--amarillo); min-width: 32px;
+  text-shadow: 2px 2px 0 #7a5800;
+}
+.paso-titulo { font-size: 16px; font-weight: 900; }
+.paso-desc   { font-size: 13px; color: rgba(255,255,255,.58); line-height: 1.45; margin-top: 3px; }
+#btn-continuar {
+  align-self: flex-end;
+  font-family: var(--pixel); font-size: 12px;
+  color: var(--blanco); background: var(--verde);
+  padding: 16px 30px; border-radius: 6px;
+  box-shadow: 0 5px 0 var(--verde-oscuro);
+  margin-top: 2px; transition: transform .1s, box-shadow .1s;
+}
+#btn-continuar:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--verde-oscuro); }
 
-        /* Color del texto del consejo lateral según caneca seleccionada */
-        #panel-consejo-lateral.caneca-blanca #texto-consejo-lateral { color: #1a6fa8; }
-        #panel-consejo-lateral.caneca-negra  #texto-consejo-lateral { color: #2c3e50; }
-        #panel-consejo-lateral.caneca-verde  #texto-consejo-lateral { color: #1e8449; }
-        #panel-consejo-lateral.caneca-fondo  #texto-consejo-lateral { color: #6c3483; }
-        body.dark-theme #panel-consejo-lateral.caneca-blanca #texto-consejo-lateral { color: #5dade2; }
-        body.dark-theme #panel-consejo-lateral.caneca-negra  #texto-consejo-lateral { color: #aab7b8; }
-        body.dark-theme #panel-consejo-lateral.caneca-verde  #texto-consejo-lateral { color: #2ecc71; }
-        body.dark-theme #panel-consejo-lateral.caneca-fondo  #texto-consejo-lateral { color: #bb8fce; }
-        #panel-consejo-resultado.visible { opacity: 1; }
+/* ════════════════════════════════════
+   CÁMARA
+════════════════════════════════════ */
+#pantalla-camara { background: #060a07; flex-direction: row; }
 
-        /* ── DEBUG PANEL ── */
-        #debug-panel {
-            display: none;
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.85);
-            color: #0f0;
-            font-family: monospace;
-            font-size: 0.75em;
-            padding: 10px;
-            border-radius: 8px;
-            max-width: 320px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 9999;
-        }
+.cam-izq { flex:1; position:relative; display:flex; flex-direction:column; background:#000; }
 
-        /* ── CAMERA ── */
-        .camera-container {
-            border: 3px solid var(--accent);
-            border-radius: 15px;
-            margin-bottom: 30px;
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            max-width: 800px;
-            height: auto;
-            position: relative;
-            box-shadow: 0 10px 18px var(--shadow);
-            transition: border-color 0.4s;
-        }
-        .camera-container__stream {
-            width: 100%;
-            height: auto;
-            display: block;
-            background-color: #000;
-            color: #FFF;
-            text-align: center;
-            line-height: 480px;
-            font-size: 20px;
-        }
+.cam-status {
+  position: absolute; top:0; left:0; right:0; height:38px; z-index:10;
+  background: linear-gradient(90deg,rgba(0,0,0,.88),rgba(0,0,0,.55));
+  display:flex; align-items:center; gap:10px; padding:0 14px;
+  backdrop-filter: blur(4px);
+}
+.dot-estado { width:11px; height:11px; border-radius:50%; background:#555; flex-shrink:0; }
+.dot-estado.grabando    { background:var(--rojo);       animation:parpDot 1s ease-in-out infinite; }
+.dot-estado.foto-tomada { background:var(--verde-claro);animation:none; }
+@keyframes parpDot { 0%,100%{opacity:1} 50%{opacity:.15} }
+.cam-status-label { font-family:var(--pixel); font-size:8px; color:rgba(255,255,255,.8); letter-spacing:1px; }
+.btn-config-cam {
+  margin-left:auto;
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
+  border-radius:6px; width:30px; height:30px; font-size:15px;
+  display:flex; align-items:center; justify-content:center; color:#fff;
+}
+.btn-config-cam:active { background:rgba(255,255,255,.25); }
 
-        /* ── LASER SCANNER ── */
-        #laser-scanner {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, transparent 0%, #00ff88 20%, #00ffcc 50%, #00ff88 80%, transparent 100%);
-            box-shadow: 0 0 12px #00ff88, 0 0 24px #00ffcc, 0 0 4px #fff;
-            border-radius: 2px;
-            z-index: 5;
-            animation: laserScan 1.8s ease-in-out infinite;
-            pointer-events: none;
-        }
-        @keyframes laserScan {
-            0%   { top: 0%; opacity: 0.9; }
-            50%  { top: calc(100% - 4px); opacity: 1; }
-            100% { top: 0%; opacity: 0.9; }
-        }
+.cam-vista { flex:1; position:relative; overflow:hidden; margin-top:38px; }
+#cam-stream { width:100%; height:100%; object-fit:cover; display:block; }
+#cam-canvas-frozen {
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; display:none; z-index:5;
+}
+#laser {
+  display:none; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg,transparent 0%,#00ff88 30%,#fff 50%,#00ff88 70%,transparent 100%);
+  box-shadow:0 0 18px #00ff88, 0 0 5px #fff; z-index:6;
+  animation:laserBajar 1.5s ease-in-out infinite;
+}
+@keyframes laserBajar { 0%{top:0%} 50%{top:calc(100% - 3px)} 100%{top:0%} }
 
-        /* ── CONFIG SECTION ── */
-        .config-section {
-            background-color: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 20px;
-            width: 90%;
-            max-width: 600px;
-            display: none;
-            opacity: 0;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 18px var(--shadow);
-            transition: opacity 0.3s ease, background 0.4s, border-color 0.4s;
-        }
-        .config-section.visible { opacity: 1; }
+.cam-sin-senal {
+  display:none; position:absolute; inset:0; background:#050a06;
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; z-index:4;
+}
+.cam-sin-senal.visible { display:flex; }
+.cam-sin-senal-icon { font-size:52px; }
+.cam-sin-senal-txt { font-family:var(--pixel); font-size:9px; color:rgba(255,255,255,.32); text-align:center; line-height:2; }
+#btn-reconectar-cam {
+  font-family:var(--pixel); font-size:8px;
+  background:var(--verde-oscuro); color:#fff;
+  padding:10px 18px; border-radius:6px; border:1px solid var(--verde);
+}
 
-        /* ── BUTTONS ── */
-        .button {
-            background: linear-gradient(145deg, #3aa0e6, #2c80b4);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 25px;
-            cursor: pointer;
-            margin: 10px;
-            font-size: 1.1em;
-            font-weight: 700;
-            box-shadow: 0 5px 0 var(--accent-dark), 0 8px 15px rgba(0,0,0,0.2);
-            transition: all 0.15s ease;
-        }
-        .button:hover {
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 7px 0 var(--accent-dark), 0 12px 22px rgba(0,0,0,0.3);
-        }
-        .button:active { transform: translateY(4px) scale(0.98); box-shadow: 0 2px 0 var(--accent-dark), 0 6px 15px rgba(0,0,0,0.2); }
-        .button--inline    { line-height: 25px; margin: 2px; padding: 2px 8px; }
-        .button--disabled  { cursor: default; background: #a0a0a0; box-shadow: none; transform: none; }
-        .button--disabled:hover { transform: none; box-shadow: none; }
+.cam-der {
+  width: 334px; flex-shrink:0;
+  display:flex; flex-direction:column;
+  background:linear-gradient(180deg,#0b1a0d 0%,#0f1f11 100%);
+  border-left:2px solid rgba(79,196,114,.13);
+}
+.jagua-guia {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 14px 12px;
+  border-bottom:2px dashed rgba(79,196,114,.18); flex-shrink:0;
+}
+.burbuja-cam {
+  background:var(--crema); color:#1a1a1a;
+  font-size:13px; font-weight:800; line-height:1.5;
+  padding:10px 13px;
+  border-radius:12px 12px 12px 4px;
+  box-shadow:3px 3px 0 rgba(0,0,0,.4);
+  flex:1; transition:all .3s;
+}
+.canecas-wrap {
+  flex:1; display:flex; flex-direction:column;
+  padding:10px 12px; gap:7px; overflow-y:auto;
+}
+.canecas-titulo-sec {
+  font-family:var(--pixel); font-size:7px;
+  color:rgba(255,255,255,.35); letter-spacing:1px;
+  text-align:center; padding:4px 0 2px;
+}
+.btn-caneca {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 14px; border-radius:11px;
+  border:2px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.04);
+  position:relative; overflow:hidden;
+  transition:transform .15s, border-color .15s, background .15s;
+}
+.btn-caneca:active { transform:scale(.965); }
+.btn-caneca.deshabilitada { opacity:.3; pointer-events:none; }
+.btn-caneca::before {
+  content:''; position:absolute; left:0; top:0; bottom:0;
+  width:5px; background:var(--cc,#555);
+  border-radius:4px 0 0 4px; transition:width .2s;
+}
+.btn-caneca:active::before { width:9px; }
+.btn-caneca[data-c="blanca"] { --cc:#4fc3f7; }
+.btn-caneca[data-c="negra"]  { --cc:#78909c; }
+.btn-caneca[data-c="verde"]  { --cc:#66bb6a; }
+.btn-caneca-emoji  { font-size:32px; flex-shrink:0; }
+.btn-caneca-nombre { font-size:16px; font-weight:900; }
+.btn-caneca-tipo   { font-size:12px; color:rgba(255,255,255,.45); font-weight:700; margin-top:2px; }
+.canecas-error {
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  gap:12px; padding:16px; text-align:center;
+}
+.canecas-error.visible { display:flex; }
+.canecas-error-icon { font-size:36px; }
+.canecas-error-txt { font-family:var(--pixel); font-size:8px; color:var(--rojo); line-height:1.9; }
+#btn-reintentar {
+  font-family:var(--pixel); font-size:8px;
+  background:rgba(229,57,53,.2); color:#ef9a9a;
+  padding:10px 18px; border-radius:6px; border:1px solid var(--rojo);
+}
 
-        /* ── MENU ── */
-        .menu { display: flex; flex-direction: column; flex-wrap: nowrap; background: var(--surface); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.4s; }
-        .menu__input-group { display: flex; flex-wrap: nowrap; line-height: 28px; margin: 8px 0; align-items: center; }
-        .menu__input-group > label { display: inline-block; padding-right: 15px; min-width: 150px; font-weight: 500; color: var(--text-secondary); }
-        .menu__input-group input, .menu__input-group select { flex-grow: 1; border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; height: 35px; font-size: 1em; background: var(--surface); color: var(--text-primary); transition: background 0.4s, border-color 0.4s, color 0.4s; }
-        .menu__range-min, .menu__range-max { display: inline-block; padding: 0 8px; font-weight: 500; color: var(--text-secondary); }
-        .menu__range-input { appearance: none; width: 100%; height: 10px; background: #dbe4ed; cursor: pointer; margin: 0; border-radius: 5px; }
-        .menu__range-input::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: var(--accent); margin-top: -5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .menu__text-input { border: 1px solid var(--border); font-size: 1em; height: 30px; margin: 2px; outline: 0; border-radius: 5px; padding: 0 8px; background: var(--surface); color: var(--text-primary); transition: background 0.4s, color 0.4s; }
+/* ════════════════════════════════════
+   OVERLAY ANALIZANDO
+════════════════════════════════════ */
+#overlay-analizando {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.9); z-index:600;
+  flex-direction:column; align-items:center; justify-content:center; gap:20px;
+}
+#overlay-analizando.activo { display:flex; }
+.spinner {
+  width:50px; height:50px;
+  border:5px solid rgba(255,255,255,.1);
+  border-top-color:var(--amarillo);
+  border-radius:50%; animation:girar .75s linear infinite;
+}
+@keyframes girar { to{transform:rotate(360deg)} }
+.analizando-txt { font-family:var(--pixel); font-size:10px; color:var(--amarillo); text-align:center; line-height:2.2; }
 
-        /* ── SWITCH ── */
-        .switch { position: relative; display: inline-block; width: 55px; height: 28px; margin-left: auto; }
-        .switch__input { opacity: 0; width: 0; height: 0; }
-        .switch__slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
-        .switch__slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .switch__input:checked + .switch__slider { background-color: var(--green); }
-        .switch__input:checked + .switch__slider:before { transform: translateX(26px); }
+/* ════════════════════════════════════
+   RESULTADO
+════════════════════════════════════ */
+#pantalla-resultado {
+  background:linear-gradient(135deg,#060f08 0%,#0d1b0f 100%);
+  flex-direction:row;
+}
+.res-izq {
+  width:340px; flex-shrink:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:18px; gap:14px;
+  border-right:2px solid rgba(79,196,114,.13);
+}
+#res-foto {
+  width:100%; max-height:230px; border-radius:12px;
+  border:3px solid rgba(255,255,255,.1); display:block; object-fit:cover;
+}
+.res-foto-label { font-family:var(--pixel); font-size:7px; color:rgba(255,255,255,.3); letter-spacing:1px; }
+.barras { width:100%; display:flex; flex-direction:column; gap:7px; }
+.barra-row { display:flex; align-items:center; gap:8px; }
+.barra-lbl { font-size:11px; font-weight:900; width:46px; color:rgba(255,255,255,.65); flex-shrink:0; }
+.barra-track { flex:1; height:13px; background:rgba(255,255,255,.08); border-radius:7px; overflow:hidden; }
+.barra-fill { height:100%; border-radius:7px; width:0%; transition:width 1s cubic-bezier(.4,0,.2,1); }
+.barra-fill.b { background:linear-gradient(90deg,#1565c0,#64b5f6); }
+.barra-fill.n { background:linear-gradient(90deg,#37474f,#90a4ae); }
+.barra-fill.v { background:linear-gradient(90deg,#2e7d32,#81c784); }
+.barra-fill.f { background:linear-gradient(90deg,#6a1b9a,#ce93d8); }
+.barra-fill.ganador { box-shadow:0 0 8px rgba(255,255,255,.5); }
+.barra-pct { font-size:11px; font-weight:900; width:36px; text-align:right; color:rgba(255,255,255,.55); flex-shrink:0; }
+.res-der { flex:1; display:flex; flex-direction:column; padding:22px 26px; gap:13px; overflow:hidden; }
+.veredicto-row { display:flex; align-items:center; gap:12px; }
+.veredicto-icono {
+  width:56px; height:56px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; flex-shrink:0;
+  animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.veredicto-icono.ok  { background:rgba(46,204,113,.18); border:3px solid #2ecc71; }
+.veredicto-icono.mal { background:rgba(229,57,53,.18);  border:3px solid #e53935; }
+@keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+.veredicto-lbl { font-family:var(--pixel); font-size:20px; line-height:1.3; }
+.veredicto-lbl.ok  { color:#4caf50; text-shadow:2px 2px 0 #1b5e20; }
+.veredicto-lbl.mal { color:#ef5350; text-shadow:2px 2px 0 #7f0000; }
+.veredicto-sub { font-size:13px; color:rgba(255,255,255,.5); font-weight:700; margin-top:3px; }
+.badge-caneca {
+  display:inline-flex; align-items:center; gap:10px;
+  padding:11px 20px; border-radius:8px;
+  font-size:15px; font-weight:900; border:2px solid; max-width:fit-content;
+}
+.badge-caneca.b { background:rgba(21,101,192,.18); border-color:#1976d2; color:#64b5f6; }
+.badge-caneca.n { background:rgba(55,71,79,.28);   border-color:#546e7a; color:#b0bec5; }
+.badge-caneca.v { background:rgba(46,125,50,.18);  border-color:#388e3c; color:#81c784; }
+.badge-caneca.f { background:rgba(106,27,154,.18); border-color:#7b1fa2; color:#ce93d8; }
+.res-desc { font-size:14px; font-weight:700; color:rgba(255,255,255,.58); line-height:1.6; border-left:3px solid var(--verde); padding-left:12px; }
+.jagua-res-row { display:flex; align-items:center; gap:12px; margin-top:auto; }
+.burbuja-res {
+  background:var(--crema); color:#1a1a1a;
+  font-size:13px; font-weight:800; line-height:1.5;
+  padding:11px 15px; border-radius:12px 12px 12px 4px;
+  box-shadow:3px 3px 0 rgba(0,0,0,.4); max-width:215px;
+}
+.res-botones { display:flex; gap:10px; }
+.btn-res { font-family:var(--pixel); font-size:10px; padding:14px 18px; border-radius:6px; line-height:1.6; transition:transform .1s, box-shadow .1s; }
+.btn-res:active { transform:translateY(3px); }
+.btn-res-volver { background:rgba(255,255,255,.09); color:rgba(255,255,255,.75); border:2px solid rgba(255,255,255,.18); }
+.btn-res-nuevo  { background:var(--verde); color:#fff; box-shadow:0 4px 0 var(--verde-oscuro); }
+.btn-res-nuevo:active { box-shadow:0 1px 0 var(--verde-oscuro); }
 
-        .toggle-section-label { cursor: pointer; display: block; font-weight: bold; margin-top: 15px; margin-bottom: 8px; color: var(--text-primary); font-size: 1.1em; }
-        .toggle-section-input { outline: 0; opacity: 0; width: 0; height: 0; }
-        .toggle-section-input:checked + .toggle-section { display: none; }
-        .separator { width: 100%; border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+/* ════════════════════════════════════
+   CONFIG OVERLAY
+════════════════════════════════════ */
+#overlay-config {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.92); z-index:800;
+  flex-direction:column; align-items:center; justify-content:center;
+}
+#overlay-config.activo { display:flex; }
+.config-panel {
+  background:#132016; border:2px solid var(--verde);
+  border-radius:14px; padding:26px; width:660px; max-height:540px; overflow-y:auto;
+}
+.config-titulo { font-family:var(--pixel); font-size:12px; color:var(--amarillo); text-align:center; margin-bottom:18px; }
+.config-grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-bottom:14px; }
+.config-fila { display:flex; flex-direction:column; gap:4px; }
+.config-fila.full { grid-column:1/-1; }
+.config-lbl { font-size:10px; font-weight:900; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:1px; }
+.config-input,.config-select {
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18);
+  border-radius:6px; color:#fff; padding:8px 10px;
+  font-size:13px; font-weight:700; font-family:var(--body); width:100%;
+}
+.config-sep { grid-column:1/-1; height:1px; background:rgba(255,255,255,.08); }
+.config-btns { display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+.btn-cfg { font-family:var(--pixel); font-size:9px; padding:10px 20px; border-radius:6px; }
+.btn-cfg-cerrar  { background:rgba(255,255,255,.09); color:#fff; border:1px solid rgba(255,255,255,.18); }
+.btn-cfg-guardar { background:var(--verde); color:#fff; box-shadow:0 3px 0 var(--verde-oscuro); }
 
-        /* ── CANECA ── */
-        .caneca-question { color: var(--text-secondary); margin-bottom: 0; display: block; font-size: 1.1em; }
-        .caneca-selection {
-            display: flex; justify-content: center; align-items: center;
-            gap: 40px; margin: 40px 0; width: 100%; flex-wrap: wrap;
-            opacity: 0; transition: opacity 0.4s ease;
-        }
-        .caneca-selection.visible { opacity: 1; }
-        .caneca-button {
-            background-color: var(--surface); border: 2px solid var(--border); border-radius: 25px;
-            padding: 25px; cursor: pointer;
-            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            display: flex; flex-direction: column; align-items: center;
-            text-align: center; width: 220px; height: 300px; justify-content: space-around;
-            box-shadow: 0 6px 12px var(--shadow);
-        }
-        .caneca-button:hover { background-color: var(--surface2); border-color: #95a5a6; transform: translateY(-5px) scale(1.03); box-shadow: 0 14px 28px var(--shadow); }
-        .caneca-button__image { width: 160px; height: 160px; border-radius: 20px; object-fit: contain; margin-bottom: 20px; }
-        .caneca-button__text  { font-weight: 700; color: var(--text-primary); font-size: 1.5em; }
+/* ════════════════════════════════════
+   JAGUAPANELA — contenedor de imagen
+════════════════════════════════════ */
+.jagua-wrap img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
 
-        /* ── PREDICTION RESULT ── */
-        .prediction-result {
-            display: none;
-            opacity: 0;
-            text-align: center; margin-top: 30px;
-            font-size: 1.8em; font-weight: 700; padding: 20px; border-radius: 15px;
-            background-color: var(--surface); box-shadow: 0 5px 15px var(--shadow);
-            transition: opacity 0.4s ease, background 0.4s;
-        }
-        .prediction-result.visible { opacity: 1; }
-        .prediction-result__icon--correct   { color: var(--green); font-size: 4em; margin-bottom: 10px; }
-        .prediction-result__icon--incorrect { color: var(--red); font-size: 4em; margin-bottom: 10px; }
-        .prediction-result__message--correct   { color: #27ae60; font-size: 1.2em; }
-        .prediction-result__message--incorrect { color: #c0392b; font-size: 1.2em; }
+/* ════════════════════════════════════
+   CONFETTI / TOAST
+════════════════════════════════════ */
+#confetti { position:fixed; inset:0; pointer-events:none; z-index:900; overflow:hidden; }
+.conf-p { position:absolute; top:-14px; border-radius:2px; animation:confCaer linear forwards; }
+@keyframes confCaer { 0%{transform:translateY(0) rotate(0deg);opacity:1} 90%{opacity:1} 100%{transform:translateY(112vh) rotate(780deg);opacity:0} }
 
-        /* ── PREDICTION RESULT — rediseñado ── */
-        .prediction-result {
-            display: none;
-            opacity: 0;
-            text-align: center;
-            margin-top: 30px;
-            font-size: 1.2em;
-            font-weight: 700;
-            padding: 32px 28px 24px;
-            border-radius: 24px;
-            background: var(--surface);
-            box-shadow: 0 8px 32px var(--shadow);
-            transition: opacity 0.4s ease, background 0.4s;
-            max-width: 560px;
-            width: 92%;
-        }
-        .prediction-result.visible { opacity: 1; }
+#toasts { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:9000; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; }
+.toast { background:rgba(10,25,14,.95); border:2px solid var(--verde); border-radius:8px; padding:10px 20px; font-family:var(--pixel); font-size:9px; color:#fff; line-height:1.7; text-align:center; animation:toastShow .3s ease both; pointer-events:auto; }
+.toast.error { border-color:var(--rojo); }
+.toast.ok    { border-color:var(--verde-claro); }
+.toast.out   { animation:toastHide .3s ease forwards; }
+@keyframes toastShow { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+@keyframes toastHide { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(18px)} }
 
-        /* Icono grande central */
-        .result-icon-wrap {
-            width: 100px; height: 100px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 16px;
-            font-size: 3.2em;
-            animation: resultPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
-        }
-        .result-icon-wrap--correct   { background: rgba(46,204,113,0.15); border: 4px solid #2ecc71; color: #27ae60; }
-        .result-icon-wrap--incorrect { background: rgba(231,76,60,0.15);  border: 4px solid #e74c3c;  color: #c0392b; }
-        @keyframes resultPop {
-            from { transform: scale(0.3); opacity: 0; }
-            to   { transform: scale(1);   opacity: 1; }
-        }
-
-        /* Texto principal de resultado */
-        .result-label {
-            font-size: 2em;
-            font-weight: 900;
-            letter-spacing: 1px;
-            margin: 0 0 6px;
-        }
-        .result-label--correct   { color: #27ae60; }
-        .result-label--incorrect { color: #c0392b; }
-
-        /* Caneca detectada */
-        .result-caneca-badge {
-            display: inline-block;
-            padding: 6px 20px;
-            border-radius: 50px;
-            font-size: 0.9em;
-            font-weight: 700;
-            margin: 10px 0 18px;
-            letter-spacing: 0.5px;
-        }
-        .result-caneca-badge--blanca { background:#d6eaf8; color:#1a5276; border:2px solid #2980b9; }
-        .result-caneca-badge--negra  { background:#d5d8dc; color:#1c2833; border:2px solid #566573; }
-        .result-caneca-badge--verde  { background:#d5f5e3; color:#145a32; border:2px solid #27ae60; }
-        .result-caneca-badge--fondo  { background:#e8daef; color:#4a235a; border:2px solid #8e44ad; }
-        body.dark-theme .result-caneca-badge--blanca { background:#1a4a72; color:#aed6f1; }
-        body.dark-theme .result-caneca-badge--negra  { background:#2c3e50; color:#bdc3c7; }
-        body.dark-theme .result-caneca-badge--verde  { background:#0e5c30; color:#a9dfbf; }
-        body.dark-theme .result-caneca-badge--fondo  { background:#4a235a; color:#d2b4de; }
-
-        /* Gráfica de barras de probabilidad */
-        .prob-chart {
-            margin: 16px 0 22px;
-            text-align: left;
-        }
-        .prob-chart__title {
-            font-size: 0.72em;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-        .prob-bar-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 7px 0;
-        }
-        .prob-bar-label {
-            width: 58px;
-            font-size: 0.82em;
-            font-weight: 700;
-            color: var(--text-primary);
-            flex-shrink: 0;
-        }
-        .prob-bar-track {
-            flex: 1;
-            background: rgba(0,0,0,0.08);
-            border-radius: 8px;
-            height: 18px;
-            overflow: hidden;
-            position: relative;
-        }
-        body.dark-theme .prob-bar-track { background: rgba(255,255,255,0.1); }
-        .prob-bar-fill {
-            height: 100%;
-            border-radius: 8px;
-            transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
-            position: relative;
-        }
-        .prob-bar-fill--blanca { background: linear-gradient(90deg,#2980b9,#5dade2); }
-        .prob-bar-fill--negra  { background: linear-gradient(90deg,#566573,#85929e); }
-        .prob-bar-fill--verde  { background: linear-gradient(90deg,#27ae60,#52be80); }
-        .prob-bar-fill--fondo  { background: linear-gradient(90deg,#8e44ad,#bb8fce); }
-        .prob-bar-fill.winner  { box-shadow: 0 0 8px rgba(0,0,0,0.25); }
-        .prob-bar-pct {
-            width: 42px;
-            text-align: right;
-            font-size: 0.82em;
-            font-weight: 700;
-            color: var(--text-primary);
-            flex-shrink: 0;
-        }
-
-        /* Descripción debajo */
-        .result-desc {
-            font-size: 0.78em;
-            color: var(--text-secondary);
-            margin: 0 0 20px;
-            line-height: 1.5;
-        }
-
-        /* Botones del resultado */
-        .result-buttons {
-            display: flex;
-            gap: 14px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 6px;
-        }
-        .btn-play-game {
-            background: linear-gradient(135deg,#f39c12,#e67e22);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 13px 26px;
-            font-size: 1em;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #c0782a, 0 6px 16px rgba(230,126,34,0.3);
-            transition: all 0.15s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-play-game:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #c0782a, 0 10px 22px rgba(230,126,34,0.4); }
-        .btn-play-game:active { transform: translateY(2px); box-shadow: 0 2px 0 #c0782a; }
-        .btn-back-menu {
-            background: linear-gradient(145deg,#3aa0e6,#2c80b4);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 13px 26px;
-            font-size: 1em;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 0 var(--accent-dark), 0 6px 16px rgba(52,152,219,0.3);
-            transition: all 0.15s ease;
-        }
-        .btn-back-menu:hover { transform: translateY(-2px); }
-        .btn-back-menu:active { transform: translateY(2px); }
-
-        /* Toast de "Jugar un juego" — overlay de countdown */
-        #game-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.82);
-            z-index: 9000;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-        #game-overlay.active { display: flex; }
-        .game-overlay-box {
-            background: var(--surface);
-            border-radius: 24px;
-            padding: 48px 56px;
-            text-align: center;
-            box-shadow: 0 0 60px rgba(243,156,18,0.4);
-            animation: resultPop 0.4s ease both;
-        }
-        .game-overlay-icon { font-size: 4em; margin-bottom: 10px; display: block; }
-        .game-overlay-title { font-size: 2em; font-weight: 900; color: var(--text-primary); margin: 0 0 8px; }
-        .game-overlay-sub   { font-size: 1em; color: var(--text-secondary); margin-bottom: 28px; }
-        .game-overlay-countdown {
-            font-size: 5em;
-            font-weight: 900;
-            background: linear-gradient(135deg,#f39c12,#e67e22);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: countPulse 1s ease infinite;
-            line-height: 1;
-        }
-        @keyframes countPulse {
-            0%,100% { transform: scale(1); }
-            50%      { transform: scale(1.08); }
-        }
-
-        /* ── NEXT SECTION ── */
-        .next-section {
-            display: none;
-            opacity: 0;
-            margin-top: 40px; padding: 30px; border: 1px solid var(--border);
-            border-radius: 15px; background-color: var(--surface); width: 80%; max-width: 700px;
-            text-align: center; box-shadow: 0 5px 15px var(--shadow);
-            transition: opacity 0.4s ease, background 0.4s;
-        }
-        .next-section.visible { opacity: 1; }
-        .next-section__title   { color: var(--text-primary); font-size: 1.8em; margin-bottom: 15px; }
-        .next-section__message { font-size: 1.1em; margin-bottom: 25px; }
-        .next-section__buttons { display: flex; justify-content: center; gap: 20px; }
-
-        /* ── CONFIG BUTTON (gear on camera) ── */
-        .config-button {
-            position: absolute; top: 15px; right: 15px;
-            background-color: rgba(0,0,0,0.6); border: none; border-radius: 50%;
-            width: 45px; height: 45px; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; font-size: 28px; color: white; z-index: 10;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-        .config-button:hover { background-color: rgba(0,0,0,0.8); transform: rotate(90deg); }
-
-        /* ── OVERLAY ── */
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--overlay-bg); display: none; opacity: 0;
-            justify-content: center; align-items: center; z-index: 100;
-            transition: opacity 0.3s ease;
-        }
-        .overlay.visible { opacity: 1; }
-        .admin-panel {
-            background-color: var(--surface); padding: 40px; border-radius: 25px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 450px;
-            transition: background 0.4s;
-            transform: scale(0.9);
-            transition: transform 0.3s ease, background 0.4s;
-        }
-        .overlay.visible .admin-panel { transform: scale(1); }
-        .admin-panel__title { margin-top: 0; color: var(--text-primary); font-size: 2em; margin-bottom: 25px; }
-        .admin-panel__input-group { justify-content: space-between; margin-bottom: 20px; }
-
-        /* ── PASSWORD OVERLAY ── */
-        .password-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--overlay-bg); display: none; opacity: 0;
-            justify-content: center; align-items: center; z-index: 101;
-            transition: opacity 0.3s ease;
-        }
-        .password-overlay.visible { opacity: 1; }
-        .password-panel {
-            background-color: var(--surface); padding: 30px; border-radius: 15px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.3); text-align: center; width: 80%; max-width: 350px;
-            transform: scale(0.9);
-            transition: transform 0.3s ease, background 0.4s;
-        }
-        .password-overlay.visible .password-panel { transform: scale(1); }
-        .password-panel__title { margin-top: 0; color: var(--text-primary); font-size: 1.5em; margin-bottom: 20px; }
-        .password-panel__input {
-            width: calc(100% - 20px); padding: 10px; margin-bottom: 20px;
-            border: 1px solid var(--border); border-radius: 5px; font-size: 1em;
-            background: var(--surface); color: var(--text-primary);
-            transition: background 0.4s, color 0.4s;
-        }
-        .password-panel__buttons { display: flex; justify-content: center; gap: 15px; }
-
-        /* ── MISC ── */
-        .hidden { display: none; }
-        .percentage-text { text-align: center; margin-top: 8px; font-weight: bold; color: var(--text-primary); }
-        .error-message { color: var(--red); font-weight: bold; margin-bottom: 20px; text-align: center; font-size: 1.1em; }
-
-        .admin-mode-button {
-            display: none; margin-top: 20px; padding: 15px 30px; font-size: 1.2em;
-            font-weight: bold; background-color: #28a745; color: white; border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .admin-mode-button:hover { background-color: #218838; transform: translateY(-3px) scale(1.05); box-shadow: 0 8px 18px rgba(0,0,0,0.25); }
-
-        /* ── SPINNER ── */
-        #loading-spinner {
-            display: none;
-            opacity: 0;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-            gap: 12px;
-            transition: opacity 0.3s ease;
-        }
-        #loading-spinner.visible { opacity: 1; }
-        .spinner {
-            width: 50px; height: 50px;
-            border: 5px solid #d0e8f5;
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #loading-spinner p { color: var(--text-secondary); font-size: 1em; margin: 0; transition: color 0.4s; }
-
-        /* ── TOAST NOTIFICATIONS ── */
-        #toast-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 99999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            pointer-events: none;
-        }
-        .toast {
-            background: var(--surface);
-            color: var(--text-primary);
-            padding: 12px 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px var(--shadow);
-            font-size: 0.95em;
-            font-family: 'Roboto', sans-serif;
-            max-width: 320px;
-            border-left: 4px solid var(--accent);
-            animation: toastIn 0.3s ease forwards;
-            pointer-events: auto;
-            transition: background 0.4s, color 0.4s;
-        }
-        .toast.toast--error { border-left-color: var(--red); }
-        .toast.toast--success { border-left-color: var(--green); }
-        .toast.toast--warning { border-left-color: #f39c12; }
-        .toast.toast-out { animation: toastOut 0.3s ease forwards; }
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateX(60px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes toastOut {
-            from { opacity: 1; transform: translateX(0); }
-            to   { opacity: 0; transform: translateX(60px); }
-        }
-
-        /* ── SALVAPANTALLAS ── */
-        #screensaver {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #000;
-            z-index: 999999;
-            overflow: hidden;
-            cursor: none;
-        }
-        #screensaver.active { display: block; }
-
-        /* Fondo estrellado animado */
-        #screensaver-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-        }
-
-        .ss-logo {
-            position: absolute;
-            top: 28px;
-            left: 28px;
-            z-index: 3;
-            opacity: 0;
-            animation: ssLogoFade 1.2s ease 0.6s forwards;
-        }
-        .ss-logo img {
-            height: 120px; /* <--- Aumentamos el tamaño (antes era 64px) */
-            width: auto;
-            /* Quitamos el filtro destructivo para que se vean los colores reales del logo, pero dejamos la sombra azul brillante */
-            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.8)); 
-        }
-        @keyframes ssLogoFade {
-            from { opacity: 0; transform: translateY(-8px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Contenido central del salvapantallas */
-        .ss-center {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: #fff;
-            pointer-events: none;
-            animation: ssPulse 3s ease-in-out infinite;
-            z-index: 2;
-        }
-        .ss-icon {
-            font-size: 6em;
-            display: block;
-            margin-bottom: 16px;
-            animation: ssFloat 4s ease-in-out infinite;
-            filter: drop-shadow(0 0 30px rgba(52,152,219,0.8));
-        }
-        .ss-title {
-            font-family: 'Roboto', sans-serif;
-            font-size: 2.2em;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-shadow: 0 0 30px rgba(52,152,219,0.9), 0 0 60px rgba(52,152,219,0.5);
-            margin-bottom: 12px;
-            background: linear-gradient(90deg, #3498db, #2ecc71, #9b59b6, #3498db);
-            background-size: 300% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: ssGradient 4s linear infinite;
-        }
-        .ss-subtitle {
-            font-family: 'Roboto', sans-serif;
-            font-size: 1em;
-            font-weight: 300;
-            color: rgba(255,255,255,0.5);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .ss-hint {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-family: 'Roboto', sans-serif;
-            font-size: 0.85em;
-            color: rgba(255,255,255,0.3);
-            letter-spacing: 1px;
-            animation: ssBlink 2s ease-in-out infinite;
-        }
-
-        /* Orbes flotantes decorativos */
-        .ss-orb {
-            position: absolute;
-            border-radius: 50%;
-            pointer-events: none;
-            filter: blur(60px);
-            opacity: 0.15;
-            animation: ssOrb linear infinite;
-        }
-
-        @keyframes ssFloat {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50%       { transform: translateY(-18px) scale(1.05); }
-        }
-        @keyframes ssPulse {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.85; }
-        }
-        @keyframes ssGradient {
-            0%   { background-position: 0% center; }
-            100% { background-position: 300% center; }
-        }
-        @keyframes ssBlink {
-            0%, 100% { opacity: 0.3; }
-            50%       { opacity: 0.7; }
-        }
-        @keyframes ssOrb {
-            0%   { transform: translate(0, 0) scale(1); }
-            33%  { transform: translate(60px, -80px) scale(1.2); }
-            66%  { transform: translate(-40px, 50px) scale(0.9); }
-            100% { transform: translate(0, 0) scale(1); }
-        }
-
-        /* ── FRAME CONGELADO (reemplaza el stream durante predicción) ── */
-        #frozen-canvas {
-            display: none;
-            width: 100%;
-            height: auto;
-            border-radius: 12px;
-            position: absolute;
-            top: 0; left: 0;
-            z-index: 2;
-        }
-
-        /* ── CONFETTI ── */
-        #confetti-container {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 99998;
-            overflow: hidden;
-        }
-        .confetti-piece {
-            position: absolute;
-            top: -10px;
-            width: 10px; height: 14px;
-            border-radius: 2px;
-            animation: confettiFall linear forwards;
-        }
-        @keyframes confettiFall {
-            0%   { transform: translateY(0) rotate(0deg) scaleX(1); opacity: 1; }
-            80%  { opacity: 1; }
-            100% { transform: translateY(110vh) rotate(720deg) scaleX(-1); opacity: 0; }
-        }
-        /* ── REDISEÑO DE RESULTADOS Y ANIMACIONES ── */
-        @keyframes popIn {
-            0% { transform: scale(0); opacity: 0; }
-            70% { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .pop-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            font-size: 3rem;
-            color: white;
-            margin: 15px auto;
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        .pop-icon--correct { background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 0 20px rgba(46,204,113,0.5); }
-        .pop-icon--incorrect { background: linear-gradient(135deg, #e74c3c, #c0392b); box-shadow: 0 0 20px rgba(231,76,60,0.5); }
-
-        .caneca-badge {
-            display: inline-block;
-            padding: 6px 18px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: white;
-            margin: 10px 0 20px 0;
-            text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .badge-blanca { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .badge-negra { background: linear-gradient(135deg, #7f8c8d, #2c3e50); }
-        .badge-verde { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-        .badge-fondo { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-
-        /* Contenedor de Gráficas de Barras Grandes */
-        .chart-container {
-            margin: 25px auto;
-            max-width: 380px;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.05), 0 10px 25px rgba(0,0,0,0.05);
-        }
-        .chart-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin: 14px 0;
-        }
-        .chart-label { width: 70px; font-weight: 700; text-align: left; font-size: 0.9rem; color: #34495e; }
-        .chart-bar-bg { flex: 1; background: rgba(0,0,0,0.08); border-radius: 8px; height: 18px; overflow: hidden; position: relative; }
-        .chart-bar-fill { height: 100%; border-radius: 8px; width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
-
-        .fill-blanca { background: linear-gradient(90deg, #5dade2, #2980b9); }
-        .fill-negra { background: linear-gradient(90deg, #bdc3c7, #2c3e50); }
-        .fill-verde { background: linear-gradient(90deg, #58d68d, #27ae60); }
-        .fill-fondo { background: linear-gradient(90deg, #af7ac5, #8e44ad); }
-        .chart-value { width: 50px; text-align: right; font-weight: 700; font-size: 0.9rem; color: #2c3e50; }
-
-        /* Capa del conteo regresivo */
-        #countdown-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.92);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        #countdown-overlay.active { opacity: 1; pointer-events: auto; }
-        #countdown-text {
-            font-size: 9rem;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 0 40px #3498db;
-            transform: scale(0.5);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        /* Modificación de contenedor para congelar fotograma */
-        .camera-card { position: relative; overflow: hidden; }
-        #frozen-canvas {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: none;
-            z-index: 10;
-            object-fit: cover;
-            border-radius: inherit;
-        }
-    </style>
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(79,196,114,.3); border-radius:4px; }
+</style>
 </head>
 <body>
-    <!-- ── OVERLAY "JUGAR UN JUEGO" — placeholder con countdown ── -->
-    <div id="game-overlay">
-        <div class="game-overlay-box">
-            <span class="game-overlay-icon">🎮</span>
-            <div class="game-overlay-title">¡Jugar un Juego!</div>
-            <div class="game-overlay-sub">Próximamente… volviendo a la cámara en</div>
-            <div class="game-overlay-countdown" id="game-countdown">4</div>
+
+<div id="confetti"></div>
+<div id="toasts"></div>
+
+<!-- ══════════════════════════════════
+     SS
+══════════════════════════════════ -->
+<div id="pantalla-ss" class="pantalla activa">
+  <canvas id="ss-canvas"></canvas>
+  <div class="ss-contenido">
+    <div class="ss-jagua" id="jagua-ss-wrap"></div>
+    <div class="ss-titulo">CAM·CAN</div>
+    <div class="ss-sub">Clasificador inteligente de canecas</div>
+    <button id="btn-escanear">▶&nbsp;&nbsp;ESCANEAR</button>
+  </div>
+  <div class="ss-hint">TOCA ESCANEAR PARA COMENZAR</div>
+</div>
+
+<!-- ══════════════════════════════════
+     INSTRUCCIONES
+══════════════════════════════════ -->
+<div id="pantalla-instrucciones" class="pantalla">
+  <div class="instruc-col-jagua">
+    <div id="jagua-inst-wrap"></div>
+    <div class="burbuja" id="burbuja-inst">
+      ¡Hola! Soy Jaguapanela 🐆<br>¡Te voy a enseñar a reciclar correctamente!
+    </div>
+  </div>
+  <div class="instruc-col-pasos">
+    <div class="instruc-titulo">¿Cómo funciona?</div>
+    <div class="paso">
+      <div class="paso-num">1</div>
+      <div>
+        <div class="paso-titulo">📦 Ten tu residuo listo</div>
+        <div class="paso-desc">Sostén el objeto frente a la cámara con buena luz.</div>
+      </div>
+    </div>
+    <div class="paso">
+      <div class="paso-num">2</div>
+      <div>
+        <div class="paso-titulo">🎥 Mira la cámara en vivo</div>
+        <div class="paso-desc">Verás la imagen de la cámara en tiempo real a la izquierda.</div>
+      </div>
+    </div>
+    <div class="paso">
+      <div class="paso-num">3</div>
+      <div>
+        <div class="paso-titulo">♻️ Elige la caneca correcta</div>
+        <div class="paso-desc">Toca la caneca donde crees que va tu residuo. La IA toma la foto en ese instante y te dice si acertaste.</div>
+      </div>
+    </div>
+    <div class="paso">
+      <div class="paso-num">4</div>
+      <div>
+        <div class="paso-titulo">✅ ¡Aprende con el resultado!</div>
+        <div class="paso-desc">Jaguapanela te explica si fue correcto y por qué.</div>
+      </div>
+    </div>
+    <button id="btn-continuar">¡ENTENDIDO, COMENZAR!&nbsp;&nbsp;▶</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     CÁMARA
+══════════════════════════════════ -->
+<div id="pantalla-camara" class="pantalla">
+  <div class="cam-izq">
+    <div class="cam-status">
+      <div class="dot-estado" id="dot-estado"></div>
+      <span class="cam-status-label" id="lbl-estado">CONECTANDO...</span>
+      <button class="btn-config-cam" id="btn-abrir-config">⚙️</button>
+    </div>
+    <div class="cam-vista">
+      <img id="cam-stream" alt="">
+      <canvas id="cam-canvas-frozen"></canvas>
+      <div id="laser"></div>
+      <div class="cam-sin-senal" id="cam-sin-senal">
+        <div class="cam-sin-senal-icon">📷</div>
+        <div class="cam-sin-senal-txt">CÁMARA NO DISPONIBLE<br><br>Verifica que el ESP32<br>esté encendido y en la<br>misma red WiFi</div>
+        <button id="btn-reconectar-cam">↺ RECONECTAR</button>
+      </div>
+    </div>
+  </div>
+  <div class="cam-der">
+    <div class="jagua-guia">
+      <div id="jagua-cam-wrap"></div>
+      <div class="burbuja-cam" id="burbuja-cam">Coloca el residuo frente a la cámara y elige en qué caneca va 👇</div>
+    </div>
+    <div class="canecas-wrap" id="canecas-wrap">
+      <div class="canecas-titulo-sec">— SELECCIONA LA CANECA —</div>
+      <button class="btn-caneca" id="btn-c-blanca" data-c="blanca">
+        <span class="btn-caneca-emoji">♻️</span>
+        <div>
+          <div class="btn-caneca-nombre">Caneca Blanca</div>
+          <div class="btn-caneca-tipo">Reciclables · Plástico, vidrio, metal, papel</div>
         </div>
-    </div>
-
-    <!-- ── SALVAPANTALLAS ── -->
-    <div id="screensaver">
-        <canvas id="screensaver-canvas"></canvas>
-        <!-- Logo ETITC arriba izquierda -->
-        <div class="ss-logo">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/0/03/ETITC.png" alt="ETITC" onerror="this.style.display='none'">
+      </button>
+      <button class="btn-caneca" id="btn-c-negra" data-c="negra">
+        <span class="btn-caneca-emoji">🗑️</span>
+        <div>
+          <div class="btn-caneca-nombre">Caneca Negra</div>
+          <div class="btn-caneca-tipo">No aprovechables · Icopor, residuos sanitarios</div>
         </div>
-        <!-- Orbes de color de fondo -->
-        <div class="ss-orb" style="width:500px;height:500px;background:#3498db;top:-100px;left:-100px;animation-duration:18s;"></div>
-        <div class="ss-orb" style="width:400px;height:400px;background:#2ecc71;bottom:-80px;right:-80px;animation-duration:22s;animation-delay:-8s;"></div>
-        <div class="ss-orb" style="width:350px;height:350px;background:#9b59b6;top:40%;left:60%;animation-duration:15s;animation-delay:-4s;"></div>
-        <!-- Contenido central -->
-        <div class="ss-center">
-            <span class="ss-icon">♻️</span>
-            <div class="ss-title">AI Trash Can</div>
-            <div class="ss-subtitle">Clasificador inteligente de residuos</div>
+      </button>
+      <button class="btn-caneca" id="btn-c-verde" data-c="verde">
+        <span class="btn-caneca-emoji">🌿</span>
+        <div>
+          <div class="btn-caneca-nombre">Caneca Verde</div>
+          <div class="btn-caneca-tipo">Orgánicos · Comida, cáscaras, jardín</div>
         </div>
-        <div class="ss-hint">Toca cualquier tecla o mueve el mouse para continuar</div>
+      </button>
+      <div class="canecas-error" id="canecas-error">
+        <div class="canecas-error-icon">⚠️</div>
+        <div class="canecas-error-txt">ERROR DE CONEXIÓN<br><br>No se pudo conectar<br>al servidor de IA</div>
+        <button id="btn-reintentar">↺ REINTENTAR</button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Dark mode toggle -->
-    <button id="dark-mode-btn" title="Alternar modo oscuro">🌙</button>
+<!-- ══════════════════════════════════
+     OVERLAY ANALIZANDO
+══════════════════════════════════ -->
+<div id="overlay-analizando">
+  <div id="jagua-analizando-wrap"></div>
+  <div class="spinner"></div>
+  <div class="analizando-txt" id="analizando-txt">ANALIZANDO IMAGEN...<br>IA pensando...</div>
+</div>
 
-    <!-- Toast container -->
-    <div id="toast-container"></div>
-
-    <!-- Confetti container -->
-    <div id="confetti-container"></div>
-
-    <div id="panel-consejo-lateral">
-        <strong>💡 Consejo de reciclaje</strong>
-        <span id="texto-consejo-lateral">Reciclar reduce la cantidad de residuos que llegan a los rellenos sanitarios.</span>
+<!-- ══════════════════════════════════
+     RESULTADO
+══════════════════════════════════ -->
+<div id="pantalla-resultado" class="pantalla">
+  <div class="res-izq">
+    <canvas id="res-foto" style="border-radius:12px;border:3px solid rgba(255,255,255,.1);max-height:230px;width:100%;"></canvas>
+    <div class="res-foto-label">FOTO CAPTURADA</div>
+    <div class="barras">
+      <div class="barra-row"><span class="barra-lbl">Blanca</span><div class="barra-track"><div class="barra-fill b" id="bf-blanca"></div></div><span class="barra-pct" id="pct-blanca">0%</span></div>
+      <div class="barra-row"><span class="barra-lbl">Negra</span><div class="barra-track"><div class="barra-fill n" id="bf-negra"></div></div><span class="barra-pct" id="pct-negra">0%</span></div>
+      <div class="barra-row"><span class="barra-lbl">Verde</span><div class="barra-track"><div class="barra-fill v" id="bf-verde"></div></div><span class="barra-pct" id="pct-verde">0%</span></div>
+      <div class="barra-row"><span class="barra-lbl">Fondo</span><div class="barra-track"><div class="barra-fill f" id="bf-fondo"></div></div><span class="barra-pct" id="pct-fondo">0%</span></div>
     </div>
-
-    <div id="debug-panel"></div>
-
-    <div id="model-error" class="error-message hidden">
-        ⚠ Error al conectar con el servidor de predicción. Verifica la conexión.
+  </div>
+  <div class="res-der">
+    <div class="veredicto-row">
+      <div class="veredicto-icono" id="veredicto-icono"></div>
+      <div>
+        <div class="veredicto-lbl" id="veredicto-lbl"></div>
+        <div class="veredicto-sub" id="veredicto-sub"></div>
+      </div>
     </div>
-
-    <div class="camera-container" id="camera-container">
-        <img class="camera-container__stream" id="camera-stream" src="" alt="Cámara aquí">
-        <!-- Canvas para congelar el frame cuando se selecciona una caneca -->
-        <canvas id="frozen-canvas"></canvas>
-        <div id="laser-scanner"></div>
-        <button class="config-button" id="config-button">⚙️</button>
+    <div class="badge-caneca" id="badge-caneca"></div>
+    <div class="res-desc" id="res-desc"></div>
+    <div class="jagua-res-row">
+      <div id="jagua-res-wrap"></div>
+      <div class="burbuja-res" id="burbuja-res"></div>
     </div>
-
-    <div class="config-section" id="configSection">
-        <h2>Configuración de la Cámara</h2>
-        <p>Ajustes de la cámara y otros parámetros.</p>
-        <nav class="menu" id="menu">
-            <section id="xclk-section" class="nothidden">
-                <div class="menu__input-group" id="set-xclk-group">
-                    <label for="xclk">XCLK MHz</label>
-                    <div class="text"><input id="xclk" type="text" minlength="1" maxlength="2" size="2" value="20" class="menu__text-input"></div>
-                    <button class="button button--inline" id="set-xclk">Set</button>
-                </div>
-            </section>
-            <div class="menu__input-group" id="framesize-group">
-                <label for="framesize">Resolution</label>
-                <select id="framesize" class="default-action menu__input-group__select">
-                    <option value="13">UXGA(1600x1200)</option><option value="12">SXGA(1280x1024)</option>
-                    <option value="11">HD(1280x720)</option><option value="10">XGA(1024x768)</option>
-                    <option value="9">SVGA(800x600)</option><option value="8" selected>VGA(640x480)</option>
-                    <option value="7">HVGA(480x320)</option><option value="6">CIF(400x296)</option>
-                    <option value="5">QVGA(320x240)</option><option value="4">240x240</option>
-                    <option value="3">HQVGA(240x176)</option><option value="2">QCIF(176x144)</option>
-                    <option value="1">QQVGA(160x120)</option><option value="0">96x96</option>
-                </select>
-            </div>
-            <div class="menu__input-group" id="quality-group"><label for="quality">Quality</label><div class="menu__range-min">4</div><input type="range" id="quality" min="4" max="63" value="5" class="default-action menu__range-input"><div class="menu__range-max">63</div></div>
-            <div class="menu__input-group" id="brightness-group"><label for="brightness">Brightness</label><div class="menu__range-min">-2</div><input type="range" id="brightness" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
-            <div class="menu__input-group" id="contrast-group"><label for="contrast">Contrast</label><div class="menu__range-min">-2</div><input type="range" id="contrast" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
-            <div class="menu__input-group" id="saturation-group"><label for="saturation">Saturation</label><div class="menu__range-min">-2</div><input type="range" id="saturation" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
-            <div class="menu__input-group" id="special_effect-group">
-                <label for="special_effect">Special Effect</label>
-                <select id="special_effect" class="default-action menu__input-group__select">
-                    <option value="0" selected>No Effect</option><option value="1">Negative</option>
-                    <option value="2">Grayscale</option><option value="3">Red Tint</option>
-                    <option value="4">Green Tint</option><option value="5">Blue Tint</option><option value="6">Sepia</option>
-                </select>
-            </div>
-            <div class="menu__input-group" id="awb-group"><label for="awb">AWB</label><div class="switch"><input id="awb" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="awb"></label></div></div>
-            <div class="menu__input-group" id="awb_gain-group"><label for="awb_gain">AWB Gain</label><div class="switch"><input id="awb_gain" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="awb_gain"></label></div></div>
-            <div class="menu__input-group" id="wb_mode-group"><label for="wb_mode">WB Mode</label><select id="wb_mode" class="default-action menu__input-group__select"><option value="0" selected>Auto</option><option value="1">Sunny</option><option value="2">Cloudy</option><option value="3">Office</option><option value="4">Home</option></select></div>
-            <div class="menu__input-group" id="aec-group"><label for="aec">AEC SENSOR</label><div class="switch"><input id="aec" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="aec"></label></div></div>
-            <div class="menu__input-group" id="aec2-group"><label for="aec2">AEC DSP</label><div class="switch"><input id="aec2" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="aec2"></label></div></div>
-            <div class="menu__input-group" id="ae_level-group"><label for="ae_level">AE Level</label><div class="menu__range-min">-2</div><input type="range" id="ae_level" min="-2" max="2" value="0" class="default-action menu__range-input"><div class="menu__range-max">2</div></div>
-            <div class="menu__input-group" id="aec_value-group"><label for="aec_value">Exposure</label><div class="menu__range-min">0</div><input type="range" id="aec_value" min="0" max="1200" value="204" class="default-action menu__range-input"><div class="menu__range-max">1200</div></div>
-            <div class="menu__input-group" id="agc-group"><label for="agc">AGC</label><div class="switch"><input id="agc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="agc"></label></div></div>
-            <div class="menu__input-group hidden" id="agc_gain-group"><label for="agc_gain">Gain</label><div class="menu__range-min">1x</div><input type="range" id="agc_gain" min="0" max="30" value="5" class="default-action menu__range-input"><div class="menu__range-max">31x</div></div>
-            <div class="menu__input-group" id="gainceiling-group"><label for="gainceiling">Gain Ceiling</label><div class="menu__range-min">2x</div><input type="range" id="gainceiling" min="0" max="6" value="0" class="default-action menu__range-input"><div class="menu__range-max">128x</div></div>
-            <div class="menu__input-group" id="bpc-group"><label for="bpc">BPC</label><div class="switch"><input id="bpc" type="checkbox" class="default-action switch__input"><label class="switch__slider" for="bpc"></label></div></div>
-            <div class="menu__input-group" id="wpc-group"><label for="wpc">WPC</label><div class="switch"><input id="wpc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="wpc"></label></div></div>
-            <div class="menu__input-group" id="raw_gma-group"><label for="raw_gma">Raw GMA</label><div class="switch"><input id="raw_gma" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="raw_gma"></label></div></div>
-            <div class="menu__input-group" id="lenc-group"><label for="lenc">Lens Correction</label><div class="switch"><input id="lenc" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="lenc"></label></div></div>
-            <div class="menu__input-group" id="hmirror-group"><label for="hmirror">H-Mirror</label><div class="switch"><input id="hmirror" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="hmirror"></label></div></div>
-            <div class="menu__input-group" id="vflip-group"><label for="vflip">V-Flip</label><div class="switch"><input id="vflip" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="vflip"></label></div></div>
-            <div class="menu__input-group" id="dcw-group"><label for="dcw">DCW (Downsize EN)</label><div class="switch"><input id="dcw" type="checkbox" class="default-action switch__input" checked><label class="switch__slider" for="dcw"></label></div></div>
-            <div class="menu__input-group" id="colorbar-group"><label for="colorbar">Color Bar</label><div class="switch"><input id="colorbar" type="checkbox" class="default-action switch__input"><label class="switch__slider" for="colorbar"></label></div></div>
-            <div class="menu__input-group" id="led-group"><label for="led_intensity">LED Intensity</label><div class="menu__range-min">0</div><input type="range" id="led_intensity" min="0" max="255" value="0" class="default-action menu__range-input"><div class="menu__range-max">255</div></div>
-            <section id="buttons" class="hidden"></section>
-
-            <div style="margin-top:15px;"><center><span style="font-weight:bold;color:var(--text-primary);font-size:1.2em;">Advanced Settings</span></center></div>
-            <hr class="separator">
-            <label for="nav-toggle-reg" class="toggle-section-label">&#9776;&nbsp;&nbsp;Register Get/Set</label>
-            <input type="checkbox" id="nav-toggle-reg" class="hidden toggle-section-input" checked>
-            <section class="toggle-section">
-                <div class="menu__input-group" id="set-reg-group">
-                    <label for="set-reg">Reg, Mask, Value</label>
-                    <div class="text"><input id="reg-addr" type="text" minlength="4" maxlength="6" size="6" value="0x111" class="menu__text-input"></div>
-                    <div class="text"><input id="reg-mask" type="text" minlength="4" maxlength="4" size="4" value="0x80" class="menu__text-input"></div>
-                    <div class="text"><input id="reg-value" type="text" minlength="4" maxlength="4" size="4" value="0x80" class="menu__text-input"></div>
-                    <button class="button button--inline" id="set-reg">Set</button>
-                </div>
-                <hr class="separator" style="width:50%">
-                <div class="menu__input-group" id="get-reg-group">
-                    <label for="get-reg">Reg, Mask</label>
-                    <div class="text"><input id="get-reg-addr" type="text" minlength="4" maxlength="6" size="6" value="0x111" class="menu__text-input"></div>
-                    <div class="text"><input id="get-reg-mask" type="text" minlength="4" maxlength="6" size="6" value="0x80" class="menu__text-input"></div>
-                    <button class="button button--inline" id="get-reg">Get</button>
-                </div>
-                <div class="menu__input-group"><label for="get-reg-value">Value</label><div class="text"><span id="get-reg-value">0x1234</span></div></div>
-            </section>
-            <hr class="separator">
-            <label for="nav-toggle-2640pll" class="toggle-section-label">&#9776;&nbsp;&nbsp;CLK</label>
-            <input type="checkbox" id="nav-toggle-2640pll" class="hidden toggle-section-input" checked>
-            <section class="toggle-section">
-                <div class="menu__input-group"><label for="2640pll1">CLK 2X</label><div class="switch"><input id="2640pll1" type="checkbox" class="reg-action switch__input" reg="0x111" offset="7" mask="0x01"><label class="switch__slider" for="2640pll1"></label></div></div>
-                <div class="menu__input-group"><label for="2640pll3">CLK DIV</label><div class="text">0<input id="2640pll3" type="text" minlength="1" maxlength="2" size="2" value="1" class="reg-action menu__text-input" reg="0x111" offset="0" mask="0x3f">63</div></div>
-                <div class="menu__input-group"><label for="2640pll5">Auto PCLK</label><div class="switch"><input id="2640pll5" type="checkbox" class="reg-action switch__input" reg="0xd3" offset="7" mask="0x01"><label class="switch__slider" for="2640pll5"></label></div></div>
-                <div class="menu__input-group"><label for="2640pll4">PCLK DIV</label><div class="text">0<input id="2640pll4" type="text" minlength="1" maxlength="3" size="3" value="4" class="reg-action menu__text-input" reg="0xd3" offset="0" mask="0x7f">127</div></div>
-            </section>
-            <hr class="separator">
-            <label for="nav-toggle-win" class="toggle-section-label">&#9776;&nbsp;&nbsp;Window</label>
-            <input type="checkbox" id="nav-toggle-win" class="hidden toggle-section-input" checked>
-            <section class="toggle-section">
-                <div class="menu__input-group"><label for="start-x">Sensor Resolution</label><select id="start-x" class="menu__input-group__select"><option value="2">CIF (400x296)</option><option value="1">SVGA (800x600)</option><option value="0" selected>UXGA (1600x1200)</option></select></div>
-                <div class="menu__input-group" id="set-offset-res-group"><label for="offset-x">Offset</label><div class="text">X:<input id="offset-x" type="text" minlength="1" maxlength="3" size="6" value="400" class="menu__text-input"></div><div class="text">Y:<input id="offset-y" type="text" minlength="1" maxlength="3" size="6" value="300" class="menu__text-input"></div></div>
-                <div class="menu__input-group" id="set-total-res-group"><label for="total-x">Window Size</label><div class="text">X:<input id="total-x" type="text" minlength="1" maxlength="4" size="6" value="800" class="menu__text-input"></div><div class="text">Y:<input id="total-y" type="text" minlength="1" maxlength="4" size="6" value="600" class="menu__text-input"></div></div>
-                <div class="menu__input-group" id="set-output-res-group"><label for="output-x">Output Size</label><div class="text">X:<input id="output-x" type="text" minlength="1" maxlength="4" size="6" value="320" class="menu__text-input"></div><div class="text">Y:<input id="output-y" type="text" minlength="1" maxlength="4" size="6" value="240" class="menu__text-input"></div></div>
-                <button class="button" id="set-resolution">Set Resolution</button>
-            </section>
-        </nav>
+    <div class="res-botones">
+      <button class="btn-res btn-res-volver" id="btn-volver-inicio">← INICIO</button>
+      <button class="btn-res btn-res-nuevo"  id="btn-clasificar-otro">♻ CLASIFICAR OTRO</button>
     </div>
+  </div>
+</div>
 
-    <div class="overlay" id="config-overlay">
-        <div class="admin-panel" id="admin-config-panel">
-            <h2 class="admin-panel__title">Opción de Administrador</h2>
-            <div class="menu__input-group admin-panel__input-group">
-                <label for="admin-switch">Activar Funcionalidad</label>
-                <div class="switch"><input id="admin-switch" type="checkbox" class="switch__input"><label class="switch__slider" for="admin-switch"></label></div>
-            </div>
-            <button class="button" onclick="hideConfigOverlay()">Cerrar</button>
-        </div>
+<!-- ══════════════════════════════════
+     CONFIG
+══════════════════════════════════ -->
+<div id="overlay-config">
+  <div class="config-panel">
+    <div class="config-titulo">⚙ CONFIGURACIÓN DE CÁMARA</div>
+    <div class="config-grid">
+      <div class="config-fila"><label class="config-lbl">Resolución</label>
+        <select id="cfg-framesize" class="config-select">
+          <option value="11">HD 1280×720</option>
+          <option value="9">SVGA 800×600</option>
+          <option value="8" selected>VGA 640×480</option>
+          <option value="5">QVGA 320×240</option>
+        </select>
+      </div>
+      <div class="config-fila"><label class="config-lbl">Calidad JPEG (4–63)</label><input type="range" id="cfg-quality" class="config-input" min="4" max="63" value="10"></div>
+      <div class="config-sep"></div>
+      <div class="config-fila"><label class="config-lbl">Brillo (-2 a 2)</label><input type="range" id="cfg-brightness" class="config-input" min="-2" max="2" value="0"></div>
+      <div class="config-fila"><label class="config-lbl">Contraste (-2 a 2)</label><input type="range" id="cfg-contrast" class="config-input" min="-2" max="2" value="0"></div>
+      <div class="config-fila"><label class="config-lbl">Saturación (-2 a 2)</label><input type="range" id="cfg-saturation" class="config-input" min="-2" max="2" value="0"></div>
+      <div class="config-fila"><label class="config-lbl">Espejo H</label>
+        <select id="cfg-hmirror" class="config-select"><option value="1" selected>Activado</option><option value="0">Desactivado</option></select>
+      </div>
+      <div class="config-fila"><label class="config-lbl">Flip V</label>
+        <select id="cfg-vflip" class="config-select"><option value="1" selected>Activado</option><option value="0">Desactivado</option></select>
+      </div>
+      <div class="config-fila"><label class="config-lbl">LED (0–255)</label><input type="range" id="cfg-led" class="config-input" min="0" max="255" value="0"></div>
     </div>
-
-    <div class="password-overlay" id="password-overlay">
-        <div class="password-panel">
-            <h2 class="password-panel__title" id="password-panel-title"></h2>
-            <input type="password" id="password-input" class="password-panel__input" placeholder="Ingresa la contraseña">
-            <div class="password-panel__buttons">
-                <button class="button" id="password-submit">Aceptar</button>
-                <button class="button" id="password-cancel">Cancelar</button>
-            </div>
-        </div>
+    <div class="config-btns">
+      <button class="btn-cfg btn-cfg-cerrar" id="btn-cerrar-config">CANCELAR</button>
+      <button class="btn-cfg btn-cfg-guardar" id="btn-guardar-config">GUARDAR Y APLICAR</button>
     </div>
+  </div>
+</div>
 
-    <h2 id="caneca-question">¿En qué caneca crees que está?</h2>
-    <h3 class="caneca-question" id="caneca-question3">(Deposítala de tal modo que se vea en la cámara para realizar la predicción correctamente)</h3>
-    <div class="caneca-selection" id="caneca-selection">
-        <button class="caneca-button" data-caneca="canecaBlanca">
-            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_1.png" alt="Caneca Blanca" class="caneca-button__image">
-            <span class="caneca-button__text">Caneca Blanca</span>
-        </button>
-        <button class="caneca-button" data-caneca="canecaNegra">
-            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_3.png" alt="Caneca Negra" class="caneca-button__image">
-            <span class="caneca-button__text">Caneca Negra</span>
-        </button>
-        <button class="caneca-button" data-caneca="canecaVerde">
-            <img src="https://repository.unad.edu.co/reproductor-ova/10596_57039/assets/images/slide9_2.png" alt="Caneca Verde" class="caneca-button__image">
-            <span class="caneca-button__text">Caneca Verde</span>
-        </button>
-    </div>
+<script>
+(function() {
+'use strict';
 
-    <div id="loading-spinner">
-        <div class="spinner"></div>
-        <p id="loading-text">Analizando imagen con IA...</p>
-    </div>
+/* ══════════════════════════════════════════════════════
+   DETECCIÓN LOCAL vs Flask
+══════════════════════════════════════════════════════ */
+const ES_LOCAL = (location.protocol === 'file:' || location.hostname === '' || location.hostname === 'localhost' && location.port === '');
 
-    <div class="prediction-result" id="prediction-result"></div>
+/* ══════════════════════════════════════════════════════
+   ██ JAGUAPANELA — SISTEMA DE SPRITES PNG ██
 
-    <div id="panel-consejo-resultado">
-        <p id="texto-consejo-resultado"></p>
-    </div>
+   Carpeta: jaguapanela/
+   Archivos esperados (PNG):
+     idle.png
+     walk1.png  walk2.png  walk3.png  walk4.png
+     runs1.png  runs2.png
+     pounce1.png  pounce2.png
+     heart.png
+     wave.png
+     etitc.png
+     4patas1.png  4patas2.png
+     wave2hands.png
+     sleep.png
 
-    <div class="next-section" id="next-section">
-        <h3 class="next-section__title" id="next-section-title"></h3>
-        <p class="next-section__message" id="next-section-message"></p>
-        <div class="next-section__buttons">
-            <button class="button" id="play-again-button" onclick="resetUI()">Jugar de Nuevo</button>
-            <button class="button" id="learn-button" onclick="resetUI()">Volver al Menú</button>
-        </div>
-    </div>
+   CUÁNDO SE USA CADA UNO:
+   ─────────────────────────────────────────────────────
+   SS normal:           idle + wave (periódico)
+   SS largo (>5min):    sleep → idle al regresar
+   Entrar instruc.:     etitc (chaqueta prom, profe)
+   Hablar instruc.:     wave → idle
+   Entrar cámara:       walk1..4 (animado, entra al frame)
+   Esperando cámara:    idle
+   Seleccionó caneca:   runs1..2 (corre a analizar)
+   Analizando:          4patas1..2 (oliendo la imagen)
+   Resultado correcto:  wave2hands → heart
+   Resultado incorrecto:pounce1..2 → idle
+   Periódico cámara:    walk1..4
+══════════════════════════════════════════════════════ */
 
-    <button class="button admin-mode-button" id="open-compartments-button">Abrir Compartimientos</button>
+/* ══════════════════════════════════════════════
+   SECUENCIAS DE ANIMACIÓN
+   Cada entrada: [nombreArchivo, duración_ms]
+══════════════════════════════════════════════ */
+const SECUENCIAS = {
+  idle:      [['idle',900],['idle',900]],
+  walk:      [['walk1',200],['walk2',200],['walk3',200],['walk4',200]],
+  runs:      [['runs1',140],['runs2',140]],
+  pounce:    [['pounce1',350],['pounce2',350]],
+  heart:     [['heart',600],['heart',600]],
+  wave:      [['wave',500],['wave',500]],
+  etitc:     [['etitc',800],['etitc',800]],
+  '4patas':  [['4patas1',300],['4patas2',300]],
+  wave2hands:[['wave2hands',500],['wave2hands',500]],
+  sleep:     [['sleep',1200],['sleep',1200]],
+};
 
-    <script>
-    // ─────────────────────────────────────────────────────────────────────────
-    // DEBUG LOGGER
-    // ─────────────────────────────────────────────────────────────────────────
-    const debugPanel = document.getElementById('debug-panel');
-    function dbg(msg) {
-        console.log('[DBG]', msg);
-        const line = document.createElement('div');
-        line.textContent = '> ' + msg;
-        debugPanel.appendChild(line);
-        debugPanel.scrollTop = debugPanel.scrollHeight;
+/* Tamaño base de Jagua según contenedor (en px, antes de escala) */
+const ESCALAS = {
+  'jagua-ss-wrap':         2.1,
+  'jagua-inst-wrap':       1.55,
+  'jagua-cam-wrap':        1.05,
+  'jagua-res-wrap':        1.0,
+  'jagua-analizando-wrap': 1.2,
+};
+
+/* Tamaño base del PNG original (ajusta si tus PNGs son de otro tamaño) */
+const PNG_BASE_PX = 80;
+
+const jaguaInstances = {};  // containerId → { timer }
+
+/* ── Renderiza un frame PNG en el contenedor ── */
+function renderFrame(containerId, frameKey, escala) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const px = Math.round(PNG_BASE_PX * escala);
+  el.innerHTML =
+    `<img src="jaguapanela/${frameKey}.png"` +
+    ` width="${px}"` +
+    ` style="image-rendering:pixelated;image-rendering:crisp-edges;display:block;"` +
+    ` alt="${frameKey}">`;
+}
+
+/* ── Detiene la animación de un contenedor ── */
+function pararJagua(containerId) {
+  const inst = jaguaInstances[containerId];
+  if (inst && inst.timer) { clearTimeout(inst.timer); inst.timer = null; }
+}
+
+/* ── Motor de animación ── */
+function animarJagua(containerId, secNombre, opciones) {
+  opciones = opciones || {};
+  pararJagua(containerId);
+
+  const escala = ESCALAS[containerId] || 1;
+  const seq    = SECUENCIAS[secNombre];
+  if (!seq) return;
+
+  let fi = 0;
+
+  function tick() {
+    const [frameKey, dur] = seq[fi % seq.length];
+    renderFrame(containerId, frameKey, escala);
+    fi++;
+
+    if (opciones.unaSola && fi >= seq.length) {
+      if (opciones.luego) animarJagua(containerId, opciones.luego);
+      return;
     }
-    document.addEventListener('keydown', e => {
-        if (e.ctrlKey && e.key === 'd') {
-            e.preventDefault();
-            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
-        }
+
+    jaguaInstances[containerId] = jaguaInstances[containerId] || {};
+    jaguaInstances[containerId].timer = setTimeout(tick, dur);
+  }
+
+  jaguaInstances[containerId] = { timer: null };
+  tick();
+}
+
+/* ── Atajos por pantalla/evento ── */
+function jaguaEntrarSS()     { animarJagua('jagua-ss-wrap',         'idle'); }
+function jaguaSSSaludar()    { animarJagua('jagua-ss-wrap',         'wave',       {unaSola:true, luego:'idle'}); }
+function jaguaEntrarInst()   { animarJagua('jagua-inst-wrap',       'etitc',      {unaSola:true, luego:'idle'}); }
+function jaguaInstHablar()   { animarJagua('jagua-inst-wrap',       'wave',       {unaSola:true, luego:'idle'}); }
+function jaguaEntrarCamara() { animarJagua('jagua-cam-wrap',        'walk'); }
+function jaguaCamaraIdle()   { animarJagua('jagua-cam-wrap',        'idle'); }
+function jaguaCapturando()   { animarJagua('jagua-cam-wrap',        'runs'); }
+function jaguaAnalizando()   { animarJagua('jagua-analizando-wrap', '4patas'); }
+function jaguaResultOk()     { animarJagua('jagua-res-wrap',        'wave2hands', {unaSola:true, luego:'heart'}); }
+function jaguaResultMal()    { animarJagua('jagua-res-wrap',        'pounce',     {unaSola:true, luego:'idle'}); }
+function jaguaDormido()      { animarJagua('jagua-ss-wrap',         'sleep'); }
+
+/* ══════════════════════════════════════════════
+   DATOS
+══════════════════════════════════════════════ */
+const INFO = {
+  blanca: { nombre:'♻️ Caneca Blanca', cls:'b', emoji:'🔵', desc:'Materiales reciclables: plástico limpio, vidrio, metal y papel o cartón seco.', idx:0 },
+  negra:  { nombre:'🗑️ Caneca Negra',  cls:'n', emoji:'⚫', desc:'Residuos no aprovechables: icopor, residuos sanitarios y plásticos contaminados.', idx:1 },
+  verde:  { nombre:'🌿 Caneca Verde',  cls:'v', emoji:'🟢', desc:'Residuos orgánicos: restos de comida, cáscaras de frutas y residuos de jardín.', idx:2 },
+  fondo:  { nombre:'🖼️ Fondo / Sin objeto', cls:'f', emoji:'❔', desc:'No se detectó ningún objeto claro. Acerca el residuo más a la cámara.', idx:3 },
+};
+
+const NORMALIZAR = {
+  'caneca_blanca':'blanca','caneca_negra':'negra','caneca_verde':'verde','caneca_fondo':'fondo',
+  'canecablanca':'blanca','canecanegra':'negra','canecaverde':'verde','canecafondo':'fondo',
+  'blanca':'blanca','negra':'negra','verde':'verde','fondo':'fondo',
+};
+function normalizarClase(s){ return NORMALIZAR[(s||'').toLowerCase().replace(/\s/g,'_')] || 'fondo'; }
+
+const FRASES = {
+  inst: ['¡Hola! Soy Jaguapanela 🐆\n¡Te enseño a reciclar correctamente!',
+         '¡Bienvenido! Reciclar bien\nes más fácil de lo que crees 🌿'],
+  cam:  ['Coloca el residuo frente\na la cámara y elige\nen qué caneca va 👇',
+         'Cuando estés listo,\ntoca la caneca donde\ncrees que va ♻️',
+         '¡Muéstrame el residuo\ny te ayudo! 🐆'],
+  ok:   ['¡Excelente! ¡Eso es reciclar bien! 🎉','¡Lo sabías! ¡Sigue así, campeón! 🌍','¡Perfecto! ¡Tú y yo salvamos el planeta! ♻️'],
+  mal:  ['¡Casi! Lee la explicación\ny lo aprenderás 💪','No te preocupes,\n¡el reciclaje se aprende! 🌱','Fíjate en los colores,\n¡tú puedes! 🐆'],
+};
+function frase(t){ const l=FRASES[t]; return l[Math.floor(Math.random()*l.length)].replace(/\n/g,'<br>'); }
+
+/* ══════════════════════════════════════════════
+   NAVEGACIÓN
+══════════════════════════════════════════════ */
+let pantallaActual = 'ss';
+function mostrar(id) {
+  document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));
+  document.getElementById('pantalla-'+id).classList.add('activa');
+  pantallaActual = id;
+}
+
+function irSS() {
+  apagrarLed();
+  mostrar('ss');
+  jaguaEntrarSS();
+  resetInactividad();
+}
+
+function irInstrucciones() {
+  mostrar('instrucciones');
+  jaguaEntrarInst();
+  document.getElementById('burbuja-inst').innerHTML = frase('inst');
+  setTimeout(jaguaInstHablar, 1200);
+}
+
+function irCamara() {
+  mostrar('camara');
+  descongelarFrame();
+  ocultarErrorIA();
+  setEstado('grabando');
+  reiniciarStream();
+  jaguaEntrarCamara();
+  setTimeout(jaguaCamaraIdle, 2200);
+  document.getElementById('burbuja-cam').innerHTML = frase('cam');
+  resetInactividad();
+}
+
+function irResultado() { mostrar('resultado'); }
+
+/* ══════════════════════════════════════════════
+   CÁMARA
+══════════════════════════════════════════════ */
+let streamOk   = false;
+let capturando = false;
+let ledPinActivo = '';
+
+function setEstado(estado) {
+  const dot = document.getElementById('dot-estado');
+  const lbl = document.getElementById('lbl-estado');
+  dot.className = 'dot-estado';
+  if (estado==='grabando') { dot.classList.add('grabando'); lbl.textContent='● GRABANDO EN VIVO'; }
+  else if (estado==='foto'){ dot.classList.add('foto-tomada'); lbl.textContent='📷 FOTO TOMADA'; }
+  else                     { lbl.textContent='⚠ SIN SEÑAL'; }
+}
+
+function onStreamLoad()  { streamOk=true;  setEstado('grabando'); document.getElementById('cam-sin-senal').classList.remove('visible'); }
+function onStreamError() { streamOk=false; setEstado('error');    document.getElementById('cam-sin-senal').classList.add('visible'); }
+
+function reiniciarStream() {
+  if (ES_LOCAL) return;
+  const img = document.getElementById('cam-stream');
+  img.src = ''; setTimeout(()=>{ img.src='/video/stream'; }, 100);
+}
+
+function congelarFrame() {
+  const img = document.getElementById('cam-stream');
+  const c   = document.getElementById('cam-canvas-frozen');
+  c.width   = img.naturalWidth  || img.offsetWidth  || 640;
+  c.height  = img.naturalHeight || img.offsetHeight || 480;
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  c.style.display = 'block';
+  img.style.opacity = '0';
+  setEstado('foto');
+}
+
+function descongelarFrame() {
+  document.getElementById('cam-canvas-frozen').style.display='none';
+  document.getElementById('cam-stream').style.opacity='1';
+  setEstado(streamOk ? 'grabando' : 'error');
+  capturando = false;
+}
+
+function mostrarLaser(v) { document.getElementById('laser').style.display = v ? 'block' : 'none'; }
+
+function mostrarErrorIA() {
+  document.querySelectorAll('.btn-caneca').forEach(b=>b.classList.add('deshabilitada'));
+  document.getElementById('canecas-error').classList.add('visible');
+}
+function ocultarErrorIA() {
+  document.querySelectorAll('.btn-caneca').forEach(b=>b.classList.remove('deshabilitada'));
+  document.getElementById('canecas-error').classList.remove('visible');
+}
+
+/* ══════════════════════════════════════════════
+   PREDICCIÓN
+══════════════════════════════════════════════ */
+async function seleccionarCaneca(claveCaneca) {
+  if (capturando) return;
+  capturando = true;
+  if (navigator.vibrate) navigator.vibrate(40);
+
+  congelarFrame();
+  mostrarLaser(true);
+  jaguaCapturando();
+  document.getElementById('burbuja-cam').innerHTML = '¡Tomando la foto<br>y analizando...!';
+
+  const ovAn = document.getElementById('overlay-analizando');
+  jaguaAnalizando();
+  ovAn.classList.add('activo');
+
+  const anTxts = ['ANALIZANDO IMAGEN...<br>IA procesando...','DETECTANDO RESIDUO...<br>Espera un momento...','CLASIFICANDO...<br>Casi listo...'];
+  let anIdx = 0;
+  const anEl = document.getElementById('analizando-txt');
+  const anTimer = setInterval(()=>{ anIdx=(anIdx+1)%anTxts.length; if(anEl) anEl.innerHTML=anTxts[anIdx]; }, 2200);
+
+  try {
+    let probs, predicha;
+
+    if (ES_LOCAL) {
+      await new Promise(r=>setTimeout(r,1800));
+      const idx = Math.floor(Math.random()*3);
+      predicha   = ['blanca','negra','verde'][idx];
+      probs      = [0.08,0.08,0.08,0.08];
+      probs[idx] = 0.76;
+    } else {
+      const fc = document.getElementById('cam-canvas-frozen');
+      const b64= fc.toDataURL('image/jpeg',.85).split(',')[1];
+      if(!b64) throw new Error('Sin imagen');
+      const resp = await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64})});
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const data = await resp.json();
+      if(data.error) throw new Error(data.error);
+      probs    = data.probabilidades||[0,0,0,0];
+      predicha = normalizarClase(data.clase);
+    }
+
+    clearInterval(anTimer);
+    ovAn.classList.remove('activo');
+    mostrarLaser(false);
+    procesarResultado(probs, predicha, claveCaneca);
+
+  } catch(err) {
+    clearInterval(anTimer);
+    console.error('Predicción:', err);
+    ovAn.classList.remove('activo');
+    mostrarLaser(false);
+    descongelarFrame();
+    capturando = false;
+    mostrarErrorIA();
+    jaguaCamaraIdle();
+    document.getElementById('burbuja-cam').innerHTML='¡Ups! No pude conectarme<br>a la IA 😟 Toca Reintentar';
+    apagrarLed();
+  }
+}
+
+function procesarResultado(probs, predicha, elegida) {
+  const src  = document.getElementById('cam-canvas-frozen');
+  const dest = document.getElementById('res-foto');
+  if(src&&dest){ dest.width=src.width||640; dest.height=src.height||480; dest.getContext('2d').drawImage(src,0,0); }
+
+  const esCorrecto = (predicha===elegida);
+  const info       = INFO[predicha] || INFO.fondo;
+  const infoEleg   = INFO[elegida]  || INFO.fondo;
+
+  irResultado();
+
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const total = probs.reduce((a,b)=>a+b,0)||1;
+    const pcts  = probs.map(p=>Math.round((p/total)*100));
+    ['blanca','negra','verde','fondo'].forEach((k,i)=>{
+      const bf  = document.getElementById('bf-'+k);
+      const pct = document.getElementById('pct-'+k);
+      if(bf)  { bf.style.width=pcts[i]+'%'; bf.classList.toggle('ganador', k===predicha); }
+      if(pct)   pct.textContent=pcts[i]+'%';
     });
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // DARK MODE
-    // ─────────────────────────────────────────────────────────────────────────
-    const darkBtn = document.getElementById('dark-mode-btn');
-    let isDark = localStorage.getItem('darkMode') === 'true';
-    function applyDarkMode(dark) {
-        document.body.classList.toggle('dark-theme', dark);
-        darkBtn.textContent = dark ? '☀️' : '🌙';
-        localStorage.setItem('darkMode', dark);
-    }
-    applyDarkMode(isDark);
-    darkBtn.addEventListener('click', () => { isDark = !isDark; applyDarkMode(isDark); });
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // TOAST SYSTEM
-    // ─────────────────────────────────────────────────────────────────────────
-    function showToast(msg, type = 'info', duration = 3000) {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast${type === 'error' ? ' toast--error' : type === 'success' ? ' toast--success' : type === 'warning' ? ' toast--warning' : ''}`;
-        toast.textContent = msg;
-        container.appendChild(toast);
-        setTimeout(() => {
-            toast.classList.add('toast-out');
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // CONFETTI
-    // ─────────────────────────────────────────────────────────────────────────
-    function launchConfetti() {
-        const container = document.getElementById('confetti-container');
-        const colors = ['#2ecc71','#3498db','#e74c3c','#f1c40f','#9b59b6','#1abc9c','#e67e22','#ff6b9d'];
-        for (let i = 0; i < 80; i++) {
-            const piece = document.createElement('div');
-            piece.className = 'confetti-piece';
-            piece.style.left = Math.random() * 100 + 'vw';
-            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            piece.style.width = (8 + Math.random() * 8) + 'px';
-            piece.style.height = (10 + Math.random() * 10) + 'px';
-            const dur = 2 + Math.random() * 1.5;
-            piece.style.animationDuration = dur + 's';
-            piece.style.animationDelay = Math.random() * 0.8 + 's';
-            container.appendChild(piece);
-            setTimeout(() => piece.remove(), (dur + 1) * 1000);
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // HAPTIC FEEDBACK
-    // ─────────────────────────────────────────────────────────────────────────
-    function haptic(pattern) {
-        if (navigator.vibrate) navigator.vibrate(pattern);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // FADE HELPERS
-    // ─────────────────────────────────────────────────────────────────────────
-    function fadeIn(el, displayType = 'block') {
-        el.style.display = displayType;
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => el.classList.add('visible'));
-        });
-    }
-    function fadeOut(el, cb) {
-        el.classList.remove('visible');
-        setTimeout(() => { el.style.display = 'none'; if (cb) cb(); }, 400);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // LASER SCANNER
-    // ─────────────────────────────────────────────────────────────────────────
-    function showLaser() { document.getElementById('laser-scanner').style.display = 'block'; }
-    function hideLaser() { document.getElementById('laser-scanner').style.display = 'none'; }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // LOADING TEXT TIMERS
-    // ─────────────────────────────────────────────────────────────────────────
-    let loadingTimer4, loadingTimer8;
-    function startLoadingTimers() {
-        const txt = document.getElementById('loading-text');
-        if (txt) txt.textContent = 'Analizando imagen con IA...';
-        loadingTimer4 = setTimeout(() => { if (txt) txt.textContent = 'Despertando el servidor...'; }, 4000);
-        loadingTimer8 = setTimeout(() => { if (txt) txt.textContent = 'Analizando detalles...'; }, 8000);
-    }
-    function stopLoadingTimers() {
-        clearTimeout(loadingTimer4);
-        clearTimeout(loadingTimer8);
-        const txt = document.getElementById('loading-text');
-        if (txt) txt.textContent = 'Analizando imagen con IA...';
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // MAPEO SUBCATEGORÍA → CANECA
-    // ─────────────────────────────────────────────────────────────────────────
-    const SUBCATEGORIA_INFO = {
-        "Plastico_Limpio":          { caneca:"canecaBlanca", emoji:"♻️",  nombre:"Plástico limpio",              descripcion:"Es un plástico reciclable (PET, HDPE). Asegúrate de que esté limpio y seco.",           consejo:"Aplasta las botellas para ahorrar espacio en el transporte al centro de reciclaje." },
-        "Papel_Carton":             { caneca:"canecaBlanca", emoji:"📦",  nombre:"Papel o cartón",               descripcion:"Es papel o cartón reciclable. Mantenerlo seco es clave.",                               consejo:"El cartón mojado o grasoso NO se puede reciclar. Sepáralo limpio y seco." },
-        "Vidrio":                   { caneca:"canecaBlanca", emoji:"🍶",  nombre:"Vidrio",                       descripcion:"Es vidrio reciclable. Retira tapas y etiquetas cuando sea posible.",                    consejo:"El vidrio se puede reciclar infinitas veces sin perder calidad." },
-        "Metal_Latas":              { caneca:"canecaBlanca", emoji:"🥫",  nombre:"Metal / lata",                 descripcion:"Es metal o aluminio reciclable. Enjuágalo brevemente.",                                 consejo:"Reciclar aluminio consume 95% menos energía que producirlo desde cero." },
-        "Plastico_Contaminado":     { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Plástico contaminado",         descripcion:"Plástico con residuos de comida. Al estar contaminado, no puede reciclarse.",            consejo:"Intenta limpiar envases antes de descartarlos." },
-        "Icopor":                   { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Icopor / poliestireno",        descripcion:"El icopor no se recicla en la mayoría de ciudades. Va a la caneca negra.",               consejo:"Prefiere alternativas reutilizables al icopor." },
-        "Residuos_Sanitarios":      { caneca:"canecaNegra",  emoji:"🚽", nombre:"Residuo sanitario",            descripcion:"Los residuos sanitarios van siempre a la caneca negra.",                                 consejo:"Ciérralos bien antes de desecharlos." },
-        "Carton_Contaminado":       { caneca:"canecaNegra",  emoji:"🗑️", nombre:"Cartón/papel contaminado",    descripcion:"El papel o cartón con grasa no puede reciclarse.",                                       consejo:"Una pequeña mancha de grasa arruina toda una carga de papel reciclado." },
-        "Otros_No_Reciclables":     { caneca:"canecaNegra",  emoji:"🗑️", nombre:"No reciclable",               descripcion:"Este residuo no puede reciclarse ni compostarse.",                                       consejo:"Reduce el consumo de productos con empaques no reciclables." },
-        "Frutas_Verduras":          { caneca:"canecaVerde",  emoji:"🍎", nombre:"Cáscaras de frutas/verduras",  descripcion:"Son restos orgánicos. Se pueden compostar o convertir en abono.",                       consejo:"En un compostero se convierten en abono en días." },
-        "Restos_Comida_Cocida":     { caneca:"canecaVerde",  emoji:"🍚", nombre:"Restos de comida cocida",      descripcion:"Van a la caneca verde como residuo orgánico aprovechable.",                              consejo:"Planear las comidas reduce el desperdicio hasta un 30%." },
-        "Huesos_Semillas":          { caneca:"canecaVerde",  emoji:"🦴", nombre:"Huesos o semillas",            descripcion:"Los huesos y semillas son orgánicos y van a la caneca verde.",                          consejo:"Algunas semillas como el aguacate se pueden reutilizar para sembrar." },
-        "Residuos_Jardin":          { caneca:"canecaVerde",  emoji:"🌿", nombre:"Residuos de jardín",           descripcion:"Hojas, pasto y ramas son residuos orgánicos. Compostan perfectamente.",                 consejo:"El pasto cortado mezclado con tierra produce abono rico." },
-        "Residuos_Biodegradables_Varios": { caneca:"canecaVerde", emoji:"☕", nombre:"Biodegradable (café, té…)", descripcion:"Estos residuos son biodegradables y ricos en nutrientes.",                           consejo:"Los posos de café son un fertilizante natural para plantas de interior." },
-        "Fondo":                          { caneca:"canecaFondo", emoji:"🖼️", nombre:"Fondo / sin objeto", descripcion:"No se detectó ningún objeto de interés en la imagen.", consejo:"Coloca el objeto frente a la cámara para obtener una predicción correcta." },
-    };
-
-    const CANECA_FALLBACK = {
-        // Clases exactas del modelo .h5 (caso puede variar)
-        "caneca_blanca":  "canecaBlanca",
-        "caneca_negra":   "canecaNegra",
-        "caneca_verde":   "canecaVerde",
-        "caneca_fondo":   "canecaFondo",
-        // Variantes sin guión bajo
-        "canecablanca":   "canecaBlanca",
-        "canecanegra":    "canecaNegra",
-        "canecaverde":    "canecaVerde",
-        "canecafondo":    "canecaFondo",
-        // Solo la palabra
-        "blanca":         "canecaBlanca",
-        "negra":          "canecaNegra",
-        "verde":          "canecaVerde",
-        "fondo":          "canecaFondo",
-        // Con espacios
-        "caneca blanca":  "canecaBlanca",
-        "caneca negra":   "canecaNegra",
-        "caneca verde":   "canecaVerde",
-        "caneca fondo":   "canecaFondo",
-        // Minúsculas
-        "Caneca_blanca":  "canecaBlanca",
-        "Caneca_negra":   "canecaNegra",
-        "Caneca_verde":   "canecaVerde",
-        "Caneca_fondo":   "canecaFondo",
-    };
-
-    const CONSEJOS_LATERALES = [
-        // ── Blanca / Reciclables ──
-        "Reciclar una lata de aluminio ahorra energía para 3 horas de TV.",
-        "El vidrio se puede reciclar infinitas veces sin perder calidad.",
-        "El papel mojado o grasoso NO se puede reciclar. ¡Mantenlo seco!",
-        "Aplasta las botellas PET antes de reciclarlas para ahorrar espacio.",
-        "Una tonelada de papel reciclado salva 17 árboles.",
-        "Lavar brevemente los envases antes de reciclarlos mejora su calidad.",
-        "El plástico PET (botellas de agua) es el más reciclado del mundo.",
-        "El aluminio reciclado conserva el 100% de sus propiedades originales.",
-        "Quitar las tapas plásticas de las botellas facilita el reciclaje.",
-        "El cartón ondulado es uno de los materiales más reciclados del mundo.",
-        "Separar el cartón en planos facilita su almacenamiento y transporte.",
-        "Los envases de yogur son reciclables si están limpios y secos.",
-        "Las cajas de pizza con grasa NO se reciclan; separa la parte limpia.",
-        "Reúsa los frascos de vidrio como contenedores de especias o semillas.",
-        "El papel reciclado usa un 60% menos de agua que el papel virgen.",
-        "El plástico #1 (PET) y #2 (HDPE) son los más aceptados en Colombia.",
-        "Los tubos de cartón de papel higiénico son reciclables.",
-        "Las botellas de aceite deben estar bien escurridas antes de reciclarlas.",
-        "Los aerosoles vacíos son reciclables como metal.",
-        "Las bolsas de leche plásticas son reciclables si están limpias.",
-        "Una botella PET puede convertirse en fibra para ropa deportiva.",
-        "Una botella de vidrio tarda un millón de años en degradarse.",
-        "Las latas de aluminio pueden volver a las tiendas en solo 60 días.",
-        "El vidrio de color y el transparente se reciclan juntos en muchos municipios.",
-        "El papel de periódico puede convertirse en nuevo papel en 7 días.",
-        "Reciclar cartón reduce la tala de bosques y el consumo de agua.",
-        "Dobla el cartón antes de depositarlo para ahorrar espacio en la caneca.",
-        "Los cuadernos viejos son reciclables si retiras las espirales metálicas.",
-        "Reutilizar un frasco de vidrio 10 veces equivale a reciclar 10 botellas nuevas.",
-        "El papel craft y las bolsas de papel son reciclables en la caneca blanca.",
-        "Las tapas metálicas de frascos también son reciclables en la caneca blanca.",
-        "Clasificar bien evita contaminar lotes enteros de material reciclable.",
-        // ── Verde / Orgánicos ──
-        "Los posos de café son un fertilizante natural para plantas de interior.",
-        "Compostar restos orgánicos reduce el metano en rellenos sanitarios.",
-        "Las semillas de aguacate y mango se pueden usar para sembrar en casa.",
-        "Las cáscaras de huevo son un excelente aporte de calcio al compost.",
-        "Los restos de fruta atraen moscas; cierra bien la caneca verde.",
-        "El pasto cortado mezclado con hojas produce un abono muy equilibrado.",
-        "Las plantas muertas de interior también van a la caneca verde.",
-        "Los filtros de té y café biodegradables van directo a la caneca verde.",
-        "Las servilletas usadas con comida son residuo orgánico, no reciclable.",
-        "Las cáscaras de cítricos demoran más en compostar; córtalas en trozos.",
-        "Los residuos orgánicos representan más del 50% de lo que tiramos.",
-        "Un compostero en casa puede transformar tus residuos en abono en 3 meses.",
-        "Los restos de poda de árboles se pueden convertir en chips para jardín.",
-        "Las cáscaras de plátano son ricas en potasio: excelente abono para plantas.",
-        "El vinagre de frutas puede hacerse con cáscaras en lugar de tirarlas.",
-        "Las pieles de cebolla sirven para hacer caldos antes de compostar.",
-        "Los posos de mate o aguapanela también son compostables.",
-        "Las mondas de papa y zanahoria son excelentes para el compost.",
-        "Los huesos de pollo y cerdo son orgánicos y van a la caneca verde.",
-        "El compostaje comunal es una opción si no tienes espacio en casa.",
-        "El biogás producido por residuos orgánicos puede generar electricidad.",
-        "Planear las comidas reduce el desperdicio de alimentos hasta un 30%.",
-        "El pelo cortado y las uñas son biodegradables y van al orgánico.",
-        "Las algas marinas son un excelente activador del proceso de compostaje.",
-        "La fermentación bokashi de residuos reduce olores y acelera el compostaje.",
-        "Mezclar residuos secos y húmedos en el compost da mejores resultados.",
-        // ── Negra / No aprovechables ──
-        "El icopor tarda más de 500 años en degradarse en la naturaleza.",
-        "Prefiere productos con menos empaque: menos residuos desde el origen.",
-        "Los pañales desechables van a la caneca negra bien cerrados.",
-        "Las colillas de cigarro son tóxicas y van a la caneca negra.",
-        "Los medicamentos vencidos NO van a la caneca normal; búscalos en puntos especiales.",
-        "Las pilas y baterías son residuos peligrosos; entrégalos en puntos autorizados.",
-        "Las bombillas fluorescentes contienen mercurio; no van a la caneca común.",
-        "Los residuos de mascotas (excrementos) van siempre a la caneca negra.",
-        "Las esponjas de cocina usadas van a la caneca negra.",
-        "Los papeles con solventes o pintura van a la caneca negra.",
-        "Los chicles masticados van a la caneca negra, no al suelo.",
-        "Los vasos desechables con restos de bebida van a la caneca negra.",
-        "El plástico #6 (poliestireno/icopor) casi no se recicla localmente.",
-        "Los envases de plástico oscuro suelen no ser reciclables.",
-        "Las baterías recargables reducen hasta 300 veces los residuos peligrosos.",
-        "Los cartuchos de tinta tienen programas de devolución en tiendas.",
-        "La caneca negra es para residuos que ya no tienen más vida útil.",
-        "El aceite de cocina usado no va por el desagüe; llévalo a puntos especiales.",
-        // ── Generales / Cultura ──
-        "Reducir, reutilizar y reciclar: en ese orden de importancia.",
-        "Separar residuos en casa reduce hasta un 70% de lo que va al relleno.",
-        "Comprar a granel reduce el empaque y los residuos generados.",
-        "Tener tres canecas en casa es el primer paso para reciclar bien.",
-        "Enseña a los niños a clasificar: el hábito formado temprano dura toda la vida.",
-        "Lleva tus materiales reciclables a puntos de acopio para mayor impacto.",
-        "Revisa el símbolo de reciclaje en los envases antes de clasificarlos.",
-        "El número dentro del símbolo de reciclaje indica el tipo de plástico.",
-        "El plástico flexible (bolsas) se recicla en puntos específicos, no en la caneca.",
-        "Preferir envases retornables es mejor que reciclar: cierra el ciclo.",
-        "El reciclaje informal recupera más del 70% de los materiales en Bogotá.",
-        "Un kg de plástico reciclado puede reemplazar 0,5 kg de petróleo.",
-        "Cada tonelada de vidrio reciclado evita la extracción de 1,2 ton de arena.",
-        "Reciclar papel reduce la contaminación del agua en un 35%.",
-        "Usar ambos lados del papel antes de reciclarlo es un paso extra que vale.",
-        "Reciclar genera empleos: en Colombia hay miles de recicladores de oficio.",
-        "Apoyar a los recicladores de base mejora la economía circular local.",
-        "Usar bolsas reutilizables evita 500 bolsas plásticas por persona al año.",
-        "La reducción de residuos en la fuente es más efectiva que el reciclaje.",
-        "Los envases multicapa (tetrapak) tienen centros de acopio especializados.",
-        "Cuando tengas duda sobre dónde va algo, consulta a tu gestor ambiental local.",
-        "El bioplástico NO siempre es compostable; revisa el etiquetado.",
-        "Separar los residuos en origen evita contaminar cargas enteras de reciclaje.",
-        "Cada clasificación correcta contribuye a la economía circular del país.",
-        "Compactar los residuos antes de llevarlos al punto de acopio ahorra viajes.",
-        // ── Cámara / IA ──
-        "Coloca el objeto frente a la cámara para que la IA lo clasifique bien.",
-        "Cuanto mejor iluminada esté la imagen, más precisa será la predicción.",
-        "Un fondo neutro contrasta mejor con el residuo y mejora la clasificación.",
-        "Cada residuo bien clasificado es un recurso que regresa al ciclo productivo.",
-        "Gracias por usar esta herramienta: ¡estás ayudando al planeta con cada uso!",
-    ];
-
-    // Consejos específicos por caneca — se muestran al seleccionar una caneca
-    const CONSEJOS_POR_CANECA = {
-        canecaBlanca: [
-            "♻️ Las botellas PET son el plástico más reciclado del mundo. ¡Aplástalas antes de tirarlas!",
-            "🥫 El aluminio reciclado ahorra un 95% de energía frente a producirlo desde cero.",
-            "🍶 El vidrio se recicla infinitas veces sin perder ninguna de sus propiedades.",
-            "📦 Mantén el papel seco: el papel mojado o grasoso no puede reciclarse.",
-            "🚿 Enjuaga brevemente los envases antes de depositarlos en la caneca blanca.",
-            "⚡ Las latas de aluminio pueden estar de vuelta en tiendas en solo 60 días.",
-            "📦 El cartón limpio y seco es uno de los materiales más valiosos para reciclar.",
-            "🔩 Quitar las tapas de las botellas facilita el proceso de reciclaje del plástico.",
-            "🔢 El plástico #1 (PET) y #2 (HDPE) son los más aceptados en los centros de reciclaje.",
-            "📐 Dobla el cartón antes de depositarlo para ahorrar espacio en la caneca blanca.",
-        ],
-        canecaNegra: [
-            "⚠️ El icopor tarda más de 500 años en degradarse: evita usarlo cuando sea posible.",
-            "🚼 Los pañales y residuos sanitarios deben ir bien cerrados en la caneca negra.",
-            "🚬 Las colillas de cigarro son tóxicas; siempre van a la caneca negra.",
-            "🔋 Las pilas y baterías son peligrosas; llévalas a puntos especiales de recolección.",
-            "🍟 Los plásticos contaminados con comida no pueden reciclarse.",
-            "🚫 El poliestireno (icopor) casi no se recicla localmente en Colombia.",
-            "👃 Cierra bien las bolsas de residuos no aprovechables para evitar malos olores.",
-            "🐾 Los residuos de mascotas siempre van en bolsa cerrada a la caneca negra.",
-            "🧽 Las esponjas de cocina usadas van a la caneca negra, no al reciclaje.",
-            "💡 Reduce el consumo de productos con empaques no reciclables para generar menos basura.",
-        ],
-        canecaVerde: [
-            "🍎 Los restos de frutas y verduras se convierten en abono en pocas semanas.",
-            "🌱 Un compostero en casa produce abono gratuito y de alta calidad para tus plantas.",
-            "🍌 Las cáscaras de plátano son ricas en potasio: un fertilizante natural perfecto.",
-            "☕ Los posos de café mejoran el drenaje del suelo y alejan las plagas del jardín.",
-            "🌿 El pasto cortado mezclado con hojas secas produce un abono muy equilibrado.",
-            "🥚 Las cáscaras de huevo aportan calcio al compost y a la tierra del jardín.",
-            "✂️ Corta los restos orgánicos en trozos pequeños para que composten más rápido.",
-            "🍵 Los filtros de té biodegradables pueden ir directamente a la caneca verde.",
-            "📅 Planear las comidas reduce el desperdicio de alimentos hasta un 30%.",
-            "🌾 Los residuos de jardín como hojas y ramas también van a la caneca verde.",
-        ],
-        canecaFondo: [
-            "📷 Asegúrate de colocar el objeto frente a la cámara para una predicción precisa.",
-            "🖼️ Un fondo despejado mejora la capacidad de la IA para identificar el objeto.",
-            "💡 Ilumina bien el objeto antes de fotografiarlo para obtener mejores resultados.",
-            "🛍️ Si el objeto está en una bolsa, sácalo para que la cámara lo vea claramente.",
-            "🎯 Centra el residuo en la imagen para que el modelo lo clasifique correctamente.",
-            "🔍 Cuanto más cerca esté el objeto a la cámara, más precisa será la clasificación.",
-            "🌑 Evita sombras fuertes sobre el objeto para obtener mejores resultados.",
-            "⬜ Un fondo blanco o neutro contrasta mejor con el residuo que vas a clasificar.",
-            "✅ La clasificación correcta desde el origen es la base de un buen reciclaje.",
-            "🔄 Inténtalo de nuevo: coloca el residuo bien visible frente a la cámara.",
-        ],
-    };
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // CONFIG
-    // ─────────────────────────────────────────────────────────────────────────
-    // ✅ CORRECCIÓN: baseHost SIEMPRE es Flask (mismo origen)
-    // Flask proxea al ESP32. No hay llamadas directas desde el navegador al ESP32.
-    var baseHost = window.location.origin;  // http://localhost:5000 o http://IP_RASP:5000
-    let ledPinGlobal = "";
-
-    var streamUrl = window.location.origin;  // Para el stream MJPEG a través de Flask
-    const API_URL = "/predict"  // POST /predict con imagen en base64
-
-    dbg(`baseHost: ${baseHost}`);
-    dbg(`API_URL: ${API_URL}`);
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // DOM refs
-    // ─────────────────────────────────────────────────────────────────────────
-    var configSection, cameraStream, cameraContainer, ledGroup, agc, agcGain,
-        gainCeiling, aec, exposure, awb, wb, framesizeSelect,
-        canecaQuestion3, canecaQuestion, canecaSelection, predictionResultDiv,
-        nextSection, nextSectionTitle, nextSectionMessage,
-        configButton, configOverlay, adminSwitch,
-        passwordOverlay, passwordPanelTitle, passwordInput,
-        passwordSubmitButton, passwordCancelButton,
-        openCompartmentsBtn, modelErrorDiv, loadingSpinner,
-        textoConsejoLateral, panelConsejoResultado, textoConsejoResultado;
-
-    const PASSWORD_KEY = 'adminPassword';
-    let adminModeEnabled = false;
-
-    let consejoIndex = Math.floor(Math.random() * CONSEJOS_LATERALES.length);
-    function rotarConsejoLateral() {
-        consejoIndex = (consejoIndex + 1) % CONSEJOS_LATERALES.length;
-        if (textoConsejoLateral) textoConsejoLateral.textContent = CONSEJOS_LATERALES[consejoIndex];
-    }
-
-    function mostrarConsejoResultado(subcategoria, caneca) {
-        const info = SUBCATEGORIA_INFO[subcategoria];
-        panelConsejoResultado.className = '';
-        if (caneca === 'canecaBlanca') panelConsejoResultado.classList.add('blanca');
-        else if (caneca === 'canecaNegra') panelConsejoResultado.classList.add('negra');
-        else if (caneca === 'canecaVerde')  panelConsejoResultado.classList.add('verde');
-        else if (caneca === 'canecaFondo')  panelConsejoResultado.classList.add('fondo');
-        textoConsejoResultado.textContent = info
-            ? `${info.emoji} ${info.consejo}`
-            : "Recuerda siempre clasificar bien tus residuos.";
-        fadeIn(panelConsejoResultado, 'block');
-    }
-
-    function actualizarConsejoPorCaneca(caneca) {
-        const lista = CONSEJOS_POR_CANECA[caneca];
-        if (!lista) return;
-        const idx = Math.floor(Math.random() * lista.length);
-        if (textoConsejoLateral) textoConsejoLateral.textContent = lista[idx];
-        const panel = document.getElementById('panel-consejo-lateral');
-        if (panel) {
-            panel.classList.remove('caneca-blanca', 'caneca-negra', 'caneca-verde', 'caneca-fondo');
-            if (caneca === 'canecaBlanca')      panel.classList.add('caneca-blanca');
-            else if (caneca === 'canecaNegra')  panel.classList.add('caneca-negra');
-            else if (caneca === 'canecaVerde')  panel.classList.add('caneca-verde');
-            else if (caneca === 'canecaFondo')  panel.classList.add('caneca-fondo');
-        }
-    }
-
-    function resolverCanecaDesdeClase(className) {
-        const info = SUBCATEGORIA_INFO[className];
-        if (info) return { caneca: info.caneca, subcategoria: className };
-        const normalizado = className.toLowerCase().replace(/\s/g, '_');
-        if (CANECA_FALLBACK[normalizado]) return { caneca: CANECA_FALLBACK[normalizado], subcategoria: null };
-        return null;
-    }
-
-    function infoCanecaParaMensaje(caneca, subcategoria) {
-        if (subcategoria && SUBCATEGORIA_INFO[subcategoria]) {
-            const info = SUBCATEGORIA_INFO[subcategoria];
-            const nombreCaneca = caneca === 'canecaBlanca' ? 'Blanca' : caneca === 'canecaNegra' ? 'Negra' : 'Verde';
-            return { nombre: `${info.emoji} Caneca ${nombreCaneca} — ${info.nombre}`, descripcion: info.descripcion };
-        }
-        if (caneca === 'canecaBlanca') return { nombre: 'Caneca Blanca', descripcion: 'para materiales reciclables.' };
-        if (caneca === 'canecaNegra')  return { nombre: 'Caneca Negra',  descripcion: 'para residuos no aprovechables.' };
-        if (caneca === 'canecaVerde')  return { nombre: 'Caneca Verde',  descripcion: 'para residuos orgánicos aprovechables.' };
-        return { nombre: 'desconocida', descripcion: '' };
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // PASSWORD / ADMIN
-    // ─────────────────────────────────────────────────────────────────────────
-    function getStoredPassword()  { return localStorage.getItem(PASSWORD_KEY); }
-    function setStoredPassword(p) { localStorage.setItem(PASSWORD_KEY, p); }
-
-    function showPasswordOverlay(isSetup) {
-        passwordInput.value = '';
-        passwordPanelTitle.textContent = isSetup ? 'Establece tu contraseña de administrador' : 'Ingresa la contraseña de administrador';
-        passwordInput.placeholder = isSetup ? 'Nueva contraseña' : 'Contraseña';
-        passwordOverlay.style.display = 'flex';
-        requestAnimationFrame(() => requestAnimationFrame(() => passwordOverlay.classList.add('visible')));
-        passwordInput.focus();
-    }
-    function hidePasswordOverlay() {
-        passwordOverlay.classList.remove('visible');
-        setTimeout(() => { passwordOverlay.style.display = 'none'; }, 300);
-    }
-
-    function handleAdminSwitchChange() {
-        if (adminSwitch.checked) showPasswordOverlay(!getStoredPassword());
-        else { adminModeEnabled = false; updateUIAfterAdminModeChange(); }
-    }
-
-    function handlePasswordSubmit() {
-        const entered = passwordInput.value;
-        const stored  = getStoredPassword();
-        if (stored) {
-            if (entered === stored) { adminModeEnabled = true; hidePasswordOverlay(); hideConfigOverlay(); updateUIAfterAdminModeChange(); }
-            else {
-                showToast('Contraseña incorrecta.', 'error');
-                haptic([50, 50, 50]);
-                adminSwitch.checked = false; hidePasswordOverlay(); hideConfigOverlay(); adminModeEnabled = false; updateUIAfterAdminModeChange();
-            }
-        } else {
-            if (entered) { setStoredPassword(entered); adminModeEnabled = true; hidePasswordOverlay(); hideConfigOverlay(); updateUIAfterAdminModeChange(); }
-            else showToast('La contraseña no puede estar vacía.', 'warning');
-        }
-    }
-
-    function handlePasswordCancel() {
-        adminSwitch.checked = false; hidePasswordOverlay(); hideConfigOverlay();
-        adminModeEnabled = false; updateUIAfterAdminModeChange();
-    }
-
-    function updateUIAfterAdminModeChange() {
-        openCompartmentsBtn.style.display = adminModeEnabled ? 'block' : 'none';
-        if (!adminModeEnabled) configSection.style.display = 'none';
-    }
-
-    function startStream() {
-        const videoElement = document.getElementById("camera-stream");
-        if (videoElement) {
-            videoElement.src = "/video/stream";
-            console.log("Stream iniciado en: " + videoElement.src);
-        } else {
-            console.error("Elemento 'camera-stream' no encontrado en el DOM.");
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // UI HELPERS
-    // ─────────────────────────────────────────────────────────────────────────
-    function showCanecaSelection() {
-        canecaQuestion3.style.display = 'block';
-        canecaQuestion.style.display  = 'block';
-        fadeIn(canecaSelection, 'flex');
-        fadeOut(predictionResultDiv);
-        fadeOut(nextSection);
-        fadeOut(loadingSpinner);
-    }
-    function hideCanecaSelection() {
-        canecaQuestion.style.display  = 'none';
-        canecaQuestion3.style.display = 'none';
-        fadeOut(canecaSelection);
-    }
-    function showConfigOverlay() {
-        configOverlay.style.display = 'flex';
-        requestAnimationFrame(() => requestAnimationFrame(() => configOverlay.classList.add('visible')));
-    }
-    function hideConfigOverlay() {
-        configOverlay.classList.remove('visible');
-        setTimeout(() => { configOverlay.style.display = 'none'; }, 300);
-    }
-
-    function resetUI() {
-        const fCanvas = document.getElementById("frozen-canvas");
-        if (fCanvas) fCanvas.style.display = "none";
-        if (cameraStream) cameraStream.style.opacity = '1'; 
-        if (cameraStream) cameraStream.style.display = "block";
-
-        fadeOut(panelConsejoResultado);
-        fadeOut(predictionResultDiv);
-        fadeOut(nextSection);
-        fadeOut(loadingSpinner);
-        hideLaser();
-        stopLoadingTimers();
-
-        showCanecaSelection();
-        
-        if (typeof startStream === "function") startStream(); 
-        
-        if (ledPinGlobal !== "") {
-            fetch(`/led_off?pin=${ledPinGlobal}`)
-                .then(() => { ledPinGlobal = ""; })
-                .catch(err => dbg("Error apagando LED: " + err));
-        }
-        
-        dbg("UI restablecida por completo.");
-    }
-
-    let frozenCanvas = null;
-
-    function freezeFrame() {
-        frozenCanvas = document.getElementById('frozen-canvas');
-        if (!frozenCanvas || !cameraStream) return;
-        frozenCanvas.width  = cameraStream.videoWidth  || cameraStream.naturalWidth  || 640;
-        frozenCanvas.height = cameraStream.videoHeight || cameraStream.naturalHeight || 480;
-        const fctx = frozenCanvas.getContext('2d');
-        fctx.drawImage(cameraStream, 0, 0, frozenCanvas.width, frozenCanvas.height);
-        // Ocultar el stream en vivo y mostrar el canvas estático
-        cameraStream.style.opacity = '0';
-        frozenCanvas.style.display = 'block';
-        frozenCanvas.style.width   = cameraStream.offsetWidth + 'px';
-        frozenCanvas.style.height  = 'auto';
-    }
-
-    function unfreezeFrame() {
-        if (frozenCanvas) frozenCanvas.style.display = 'none';
-        if (cameraStream)  cameraStream.style.opacity = '1';
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // JUGAR UN JUEGO — overlay con countdown 4→1
-    // ─────────────────────────────────────────────────────────────────────────
-    function launchGameOverlay() {
-        const overlay = document.getElementById('game-overlay');
-        const countEl = document.getElementById('game-countdown');
-        if (!overlay || !countEl) return;
-        overlay.classList.add('active');
-        let count = 4;
-        countEl.textContent = count;
-        const timer = setInterval(() => {
-            count--;
-            countEl.textContent = count;
-            if (count <= 0) {
-                clearInterval(timer);
-                overlay.classList.remove('active');
-                resetUI();
-            }
-        }, 1000);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDER RESULTADO — función separada para generar el HTML del resultado
-    // ─────────────────────────────────────────────────────────────────────────
-    function renderResultadoUI(correct, nombre, descripcion, pct, predictedCaneca) {
-        const badgeClass = predictedCaneca === 'canecaBlanca' ? 'blanca'
-                         : predictedCaneca === 'canecaNegra'  ? 'negra'
-                         : predictedCaneca === 'canecaVerde'  ? 'verde' : 'fondo';
-        const winnerIdx = ['canecaBlanca','canecaNegra','canecaVerde','canecaFondo'].indexOf(predictedCaneca);
-
-        const barras = [
-            { label:'Blanca', cls:'blanca', pct: pct.canecaBlanca, idx:0 },
-            { label:'Negra',  cls:'negra',  pct: pct.canecaNegra,  idx:1 },
-            { label:'Verde',  cls:'verde',  pct: pct.canecaVerde,  idx:2 },
-            { label:'Fondo',  cls:'fondo',  pct: pct.canecaFondo,  idx:3 },
-        ];
-        const barrasHTML = barras.map(b => `
-            <div class="prob-bar-row">
-                <span class="prob-bar-label">${b.label}</span>
-                <div class="prob-bar-track">
-                    <div class="prob-bar-fill prob-bar-fill--${b.cls}${b.idx === winnerIdx ? ' winner' : ''}"
-                         style="width:0%" data-target="${b.pct}%"></div>
-                </div>
-                <span class="prob-bar-pct">${b.pct}%</span>
-            </div>
-        `).join('');
-
-        predictionResultDiv.innerHTML = `
-            <div class="result-icon-wrap result-icon-wrap--${correct ? 'correct' : 'incorrect'}">
-                ${correct ? '✔' : '✖'}
-            </div>
-            <div class="result-label result-label--${correct ? 'correct' : 'incorrect'}">
-                ${correct ? '¡Correcto!' : '¡Incorrecto!'}
-            </div>
-            <span class="result-caneca-badge result-caneca-badge--${badgeClass}">${nombre}</span>
-            <p class="result-desc">${descripcion}${correct ? '<br>🎉 ¡Bien hecho! Clasificaste correctamente el residuo.' : ''}</p>
-            <div class="prob-chart">
-                <div class="prob-chart__title">Confianza del modelo</div>
-                ${barrasHTML}
-            </div>
-            <div class="result-buttons">
-                <button class="btn-play-game" onclick="launchGameOverlay()">
-                    🎮 Jugar un Juego
-                </button>
-                <button class="btn-back-menu" onclick="resetUI()">
-                    🔄 Volver al menú
-                </button>
-            </div>
-        `;
-
-        // Animar barras con un pequeño delay para la transición CSS
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                predictionResultDiv.querySelectorAll('.prob-bar-fill').forEach(bar => {
-                    bar.style.width = bar.dataset.target;
-                });
-            });
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // PREDICCIÓN
-    // ─────────────────────────────────────────────────────────────────────────
-    async function predictAndEvaluate(selectedCaneca) {
-        fadeIn(loadingSpinner, 'flex');
-        showLaser();
-        startLoadingTimers();
-
-        try {
-            dbg("Capturando y congelando fotograma del stream...");
-            
-            // ── REQUISITO 4: CONGELAR EL FRAME ACTUAL ──
-            const frozenCanvas = document.getElementById("frozen-canvas");
-            if (frozenCanvas) {
-                frozenCanvas.width = cameraStream.naturalWidth || 224;
-                frozenCanvas.height = cameraStream.naturalHeight || 224;
-                const fCtx = frozenCanvas.getContext("2d");
-                fCtx.drawImage(cameraStream, 0, 0, frozenCanvas.width, frozenCanvas.height);
-                frozenCanvas.style.display = "block"; // Muestra el frame estático encima
-            }
-
-            // Capturamos la matriz en base64 directamente desde el render estático del canvas
-            const canvasTmp = document.createElement("canvas");
-            canvasTmp.width = cameraStream.naturalWidth || 224;
-            canvasTmp.height = cameraStream.naturalHeight || 224;
-            const ctxTmp = canvasTmp.getContext("2d");
-            ctxTmp.drawImage(cameraStream, 0, 0, canvasTmp.width, canvasTmp.height);
-            const base64Image = canvasTmp.toDataURL("image/jpeg").split(',')[1];
-
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imagen: base64Image }),
-            });
-
-            const result = await response.json();
-            console.log(result);
-            if (!response.ok) throw new Error(`API error ${response.status}`);
-
-            if (result.index !== undefined && Array.isArray(result.probabilidades)) {
-                const categorias = ["Caneca_blanca", "Caneca_negra", "Caneca_verde", "Caneca_fondo"];
-                result.prediccion = [{
-                    clase: categorias[result.index],
-                    confianza: result.probabilidades[result.index]
-                }];
-            }
-
-            const probs = result.probabilidades || [0, 0, 0, 0];
-            stopLoadingTimers();
-            hideLaser();
-            fadeOut(loadingSpinner);
-            haptic([200]);
-
-            if (!result.prediccion || result.prediccion.length === 0) {
-                predictionResultDiv.innerHTML = '<span class="prediction-result__message--incorrect">No se detectó un objeto claro.</span>';
-                fadeIn(predictionResultDiv, 'block');
-                setTimeout(resetUI, 3000);
-                return;
-            }
-
-            const confianzaPorCaneca = { canecaBlanca: 0, canecaNegra: 0, canecaVerde: 0, canecaFondo: 0 };
-            let mejorSubcat = null;
-            let mejorConfianza = -1;
-
-            result.prediccion.forEach(p => {
-                const confianza  = p.confianza || 0;
-                const className  = (p.clase || '').trim();
-                const resolucion = resolverCanecaDesdeClase(className);
-                if (resolucion) {
-                    confianzaPorCaneca[resolucion.caneca] += confianza;
-                    if (confianza > mejorConfianza) {
-                        mejorConfianza = confianza;
-                        mejorSubcat    = resolucion.subcategoria || className;
-                    }
-                }
-            });
-
-            const totalConfianza = probs[0] + probs[1] + probs[2] + probs[3];
-            let predictedCaneca = Object.entries(confianzaPorCaneca).sort(([,a],[,b]) => b-a)[0][0];
-
-            const pct = {
-                canecaBlanca: Math.round(((probs[0]||0) / (totalConfianza||1)) * 100),
-                canecaNegra:  Math.round(((probs[1]||0) / (totalConfianza||1)) * 100),
-                canecaVerde:  Math.round(((probs[2]||0) / (totalConfianza||1)) * 100),
-                canecaFondo:  Math.round(((probs[3]||0) / (totalConfianza||1)) * 100),
-            };
-
-            ledPinGlobal = predictedCaneca === 'canecaBlanca' ? "45" : predictedCaneca === 'canecaNegra' ? "47" : predictedCaneca === 'canecaVerde' ? "48" : "";
-            if (ledPinGlobal) fetch(`/led_on?pin=${ledPinGlobal}`).catch(err => dbg("LED err"));
-
-            mostrarConsejoResultado(mejorSubcat, predictedCaneca);
-            const { nombre, descripcion } = infoCanecaParaMensaje(predictedCaneca, mejorSubcat);
-
-            // Mapeo de estilos para el Badge de color
-            const badgeMap = {
-                canecaBlanca: { label: "Caneca Blanca", cls: "badge-blanca" },
-                canecaNegra: { label: "Caneca Negra", cls: "badge-negra" },
-                canecaVerde: { label: "Caneca Verde", cls: "badge-verde" },
-                canecaFondo: { label: "Fondo / Vacío", cls: "badge-fondo" }
-            };
-            const bData = badgeMap[predictedCaneca] || { label: nombre, cls: "badge-blanca" };
-
-            // ── REQUISITO 2: INTERFAZ REDISEÑADA CON GRÁFICAS GRADIENTES Y NUEVOS BOTONES ──
-            const esCorrecto = (selectedCaneca === predictedCaneca);
-
-            if (esCorrecto) {
-                launchConfetti();
-                showToast('🎉 ¡Correcto! ¡Clasificaste bien el residuo!', 'success');
-            } else {
-                showToast('❌ Incorrecto. ¡Sigue aprendiendo!', 'error');
-            }
-
-            // Llamamos a la función que creaste en la línea 1409 con todos los gradientes y animaciones
-            renderResultadoUI(esCorrecto, bData.label, descripcion, pct, predictedCaneca);
-
-            fadeIn(predictionResultDiv, 'block');
-            hideCanecaSelection();
-
-        } catch (error) {
-            stopLoadingTimers();
-            hideLaser();
-            fadeOut(loadingSpinner);
-            resetUI();
-            showToast('⚠️ Error de comunicación con la IA.', 'error', 4000);
-        }
-    }
-
-    function handleCanecaSelection(selectedCaneca) {
-        actualizarConsejoPorCaneca(selectedCaneca);
-        hideCanecaSelection();
-        //fadeOut(predictionResultDiv);
-        fadeOut(nextSection);
-        predictAndEvaluate(selectedCaneca);
-    }
-
-    // ── REQUISITO 3: FUNCIÓN LOGIC PARA EL MODO DE JUEGO (COUNTDOWN OVERLAY) ──
-    function iniciarCuentaRegresivaJuego() {
-        const overlay = document.getElementById('countdown-overlay');
-        const textEl = document.getElementById('countdown-text');
-        if (!overlay || !textEl) return;
-
-        overlay.classList.add('active');
-        let count = 4;
-        textEl.innerText = count;
-        textEl.style.transform = "scale(1)";
-
-        haptic([100]);
-
-        const interval = setInterval(() => {
-            count--;
-            if (count > 0) {
-                textEl.innerText = count;
-                textEl.style.transform = "scale(0.5)";
-                setTimeout(() => textEl.style.transform = "scale(1)", 40);
-                haptic([60]);
-            } else {
-                clearInterval(interval);
-                overlay.classList.remove('active');
-                resetUI(); // Cierra el juego y restaura el stream vivo
-            }
-        }, 1000);
-    }
-
-    function adjustCameraContainerSize(framesize) {
-        const container = document.getElementById("camera-container");
-        if (!container) return;
-
-        // Ajusta el tamaño basado en el valor del framesize (ejemplo básico)
-        if (framesize === "10") { // UXGA
-            container.style.width = "1600px";
-        } else {
-            container.style.width = "640px";
-        }
-        console.log("Tamaño de cámara ajustado a:", framesize);
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        configSection        = document.getElementById('configSection');
-        cameraStream         = document.getElementById('camera-stream');
-        cameraContainer      = document.getElementById('camera-container');
-        ledGroup             = document.getElementById('led-group');
-        agc                  = document.getElementById('agc');
-        agcGain              = document.getElementById('agc_gain-group');
-        gainCeiling          = document.getElementById('gainceiling-group');
-        aec                  = document.getElementById('aec');
-        exposure             = document.getElementById('aec_value-group');
-        awb                  = document.getElementById('awb_gain');
-        wb                   = document.getElementById('wb_mode-group');
-        framesizeSelect      = document.getElementById('framesize');
-        canecaQuestion3      = document.getElementById('caneca-question3');
-        canecaQuestion       = document.getElementById('caneca-question');
-        canecaSelection      = document.getElementById('caneca-selection');
-        predictionResultDiv  = document.getElementById('prediction-result');
-        nextSection          = document.getElementById('next-section');
-        nextSectionTitle     = document.getElementById('next-section-title');
-        nextSectionMessage   = document.getElementById('next-section-message');
-        configButton         = document.getElementById('config-button');
-        configOverlay        = document.getElementById('config-overlay');
-        adminSwitch          = document.getElementById('admin-switch');
-        passwordOverlay      = document.getElementById('password-overlay');
-        passwordPanelTitle   = document.getElementById('password-panel-title');
-        passwordInput        = document.getElementById('password-input');
-        passwordSubmitButton = document.getElementById('password-submit');
-        passwordCancelButton = document.getElementById('password-cancel');
-        openCompartmentsBtn  = document.getElementById('open-compartments-button');
-        modelErrorDiv        = document.getElementById('model-error');
-        loadingSpinner       = document.getElementById('loading-spinner');
-        textoConsejoLateral  = document.getElementById('texto-consejo-lateral');
-        panelConsejoResultado = document.getElementById('panel-consejo-resultado');
-        textoConsejoResultado = document.getElementById('texto-consejo-resultado');
-
-        textoConsejoLateral.textContent = CONSEJOS_LATERALES[consejoIndex];
-        setInterval(rotarConsejoLateral, 7000);
-
-        adjustCameraContainerSize(framesizeSelect.value);
-
-        document.querySelectorAll('.caneca-button').forEach(btn => {
-            btn.addEventListener('click', () => handleCanecaSelection(btn.dataset.caneca));
-        });
-
-        configButton.addEventListener('click', showConfigOverlay);
-        adminSwitch.addEventListener('change', handleAdminSwitchChange);
-        passwordSubmitButton.addEventListener('click', handlePasswordSubmit);
-        passwordCancelButton.addEventListener('click', handlePasswordCancel);
-        passwordInput.addEventListener('keypress', e => { if (e.key === 'Enter') handlePasswordSubmit(); });
-
-        document.getElementById('set-reg').onclick = () => {
-            setReg(parseInt(document.getElementById('reg-addr').value), 0,
-                   parseInt(document.getElementById('reg-mask').value),
-                   parseInt(document.getElementById('reg-value').value),
-                   (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-        };
-        document.getElementById('get-reg').onclick = () => {
-            const span = document.getElementById('get-reg-value');
-            getReg(parseInt(document.getElementById('get-reg-addr').value), 0,
-                   parseInt(document.getElementById('get-reg-mask').value),
-                   (code, txt) => { span.innerHTML = code !== 200 ? `Error[${code}]: ${txt}` : `0x${parseInt(txt).toString(16)} (${txt})`; });
-        };
-        document.getElementById('set-xclk').onclick = () => {
-            setXclk(parseInt(document.getElementById('xclk').value),
-                    (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-        };
-        document.getElementById('set-resolution').onclick = () => {
-            const sx = parseInt(document.getElementById('start-x').value);
-            const ox = parseInt(document.getElementById('offset-x').value);
-            const oy = parseInt(document.getElementById('offset-y').value);
-            const tx = parseInt(document.getElementById('total-x').value);
-            const ty = parseInt(document.getElementById('total-y').value);
-            const outx = parseInt(document.getElementById('output-x').value);
-            const outy = parseInt(document.getElementById('output-y').value);
-            fetchUrl(`${baseHost}/resolution?sx=${sx}&sy=0&ex=0&ey=0&offx=${ox}&offy=${oy}&tx=${tx}&ty=${ty}&ox=${outx}&oy=${outy}&scale=0&binning=0`,
-                     (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-        };
-
-        document.querySelectorAll('.default-action').forEach(el => el.addEventListener('change', () => updateConfig(el)));
-        document.querySelectorAll('.reg-action').forEach(el => {
-            if (el.type === 'text') {
-                el.onkeyup = e => {
-                    if (e.keyCode === 13) {
-                        setReg(parseInt(el.attributes.reg?.nodeValue || 0), parseInt(el.attributes.offset?.nodeValue || 0),
-                               parseInt(el.attributes.mask?.nodeValue || 255), parseInt(el.value),
-                               (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-                    }
-                };
-            } else {
-                el.onchange = () => {
-                    const mask = parseInt(el.attributes.mask?.nodeValue || 255);
-                    setReg(parseInt(el.attributes.reg?.nodeValue || 0), parseInt(el.attributes.offset?.nodeValue || 0),
-                           mask, el.type === 'checkbox' ? (el.checked ? mask : 0) : parseInt(el.value),
-                           (code, txt) => { if (code !== 200) showToast(`Error[${code}]: ${txt}`, 'error'); });
-                };
-            }
-        });
-
-        // ✅ Verificar health del servidor Flask (no ESP32 directamente)
-        fetch(`/health`)
-            .then(r => r.json())
-            .then(state => {
-                if (!state.modelo) {
-                    showToast('⚠️ El modelo de IA no está cargado en el servidor.', 'warning', 6000);
-                }
-                // Los config del ESP32 se ignoran cuando Flask es proxy
-                adjustCameraContainerSize(framesizeSelect.value);
-            })
-            .catch(() => {
-                showToast('⚠️ Error conectando al servidor Flask.', 'error', 5000);
-                cameraStream.alt = "Servidor no disponible.";
-            });
-
-        startStream();
-        showCanecaSelection();
-        updateUIAfterAdminModeChange();
-
-        // ✅ Verificar que el backend Flask está listo
-        dbg("Verificando servidor Flask...");
-        fetch('/health', { method: 'GET' })
-            .then(r => r.json())
-            .then(d => dbg(`Flask OK — modelo: ${d.modelo ? '✓ cargado' : '⚠️ NO cargado'}`))
-            .catch(e => dbg("Flask no responde: " + e.message));
+  }));
+
+  const ic = document.getElementById('veredicto-icono');
+  const lb = document.getElementById('veredicto-lbl');
+  const sb = document.getElementById('veredicto-sub');
+  ic.className = 'veredicto-icono '+(esCorrecto?'ok':'mal');
+  ic.textContent = esCorrecto?'✔':'✖';
+  lb.className   = 'veredicto-lbl '+(esCorrecto?'ok':'mal');
+  lb.textContent = esCorrecto?'¡CORRECTO!':'¡INCORRECTO!';
+  sb.textContent = esCorrecto
+    ? 'Elegiste: '+infoEleg.nombre+' · ¡Bien hecho!'
+    : 'Elegiste: '+infoEleg.nombre+' · La IA detectó otra caneca';
+
+  const badge = document.getElementById('badge-caneca');
+  badge.className = 'badge-caneca '+info.cls;
+  badge.innerHTML = info.emoji+' <strong>'+info.nombre+'</strong>';
+
+  document.getElementById('res-desc').textContent = info.desc;
+
+  if(esCorrecto) { jaguaResultOk(); } else { jaguaResultMal(); }
+  document.getElementById('burbuja-res').innerHTML = frase(esCorrecto?'ok':'mal');
+
+  if(esCorrecto) { confetti(); if(navigator.vibrate) navigator.vibrate([80,40,80]); }
+  else           { if(navigator.vibrate) navigator.vibrate(160); }
+
+  const leds={blanca:'45',negra:'47',verde:'48'};
+  ledPinActivo = leds[predicha]||'';
+  if(ledPinActivo&&!ES_LOCAL) fetch('/led_on?pin='+ledPinActivo).catch(()=>{});
+
+  capturando = false;
+}
+
+/* ══════════════════════════════════════════════
+   CONFETTI / TOAST
+══════════════════════════════════════════════ */
+function confetti() {
+  const cont = document.getElementById('confetti');
+  const cols = ['#2ecc71','#f5c842','#e53935','#1976d2','#f07d2a','#9575cd','#fff'];
+  for(let i=0;i<72;i++){
+    const p = document.createElement('div'); p.className='conf-p';
+    p.style.left = Math.random()*100+'vw';
+    p.style.background = cols[Math.floor(Math.random()*cols.length)];
+    p.style.width  = (7+Math.random()*7)+'px';
+    p.style.height = (9+Math.random()*9)+'px';
+    const dur = 2+Math.random()*1.5;
+    p.style.animationDuration=dur+'s';
+    p.style.animationDelay=Math.random()*.8+'s';
+    cont.appendChild(p);
+    setTimeout(()=>p.remove(),(dur+1)*1000);
+  }
+}
+
+function toast(msg,tipo,dur){
+  dur=dur||3200;
+  const cont=document.getElementById('toasts');
+  const el=document.createElement('div'); el.className='toast '+(tipo||''); el.textContent=msg;
+  cont.appendChild(el);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),350); },dur);
+}
+
+/* ══════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════ */
+function abrirConfig()  { document.getElementById('overlay-config').classList.add('activo'); }
+function cerrarConfig() { document.getElementById('overlay-config').classList.remove('activo'); }
+function guardarConfig() {
+  if(ES_LOCAL){ toast('Configuración solo aplica en la Raspberry Pi',''); cerrarConfig(); return; }
+  const vals={
+    framesize:    document.getElementById('cfg-framesize').value,
+    quality:      document.getElementById('cfg-quality').value,
+    brightness:   document.getElementById('cfg-brightness').value,
+    contrast:     document.getElementById('cfg-contrast').value,
+    saturation:   document.getElementById('cfg-saturation').value,
+    hmirror:      document.getElementById('cfg-hmirror').value,
+    vflip:        document.getElementById('cfg-vflip').value,
+    led_intensity:document.getElementById('cfg-led').value,
+  };
+  Promise.all(Object.entries(vals).map(([k,v])=>fetch('/control?var='+k+'&val='+v).catch(()=>{})))
+    .then(()=>{ toast('✅ Configuración aplicada','ok'); cerrarConfig(); reiniciarStream(); });
+}
+function apagrarLed() {
+  if(ledPinActivo&&!ES_LOCAL) fetch('/led_off?pin='+ledPinActivo).catch(()=>{});
+  ledPinActivo='';
+}
+
+/* ══════════════════════════════════════════════
+   HEALTH CHECK
+══════════════════════════════════════════════ */
+function checkHealth() {
+  if(ES_LOCAL) return;
+  fetch('/health').then(r=>r.json()).then(d=>{
+    if(!d.modelo) toast('⚠ Modelo de IA no cargado en el servidor','error',7000);
+  }).catch(()=>toast('⚠ No se puede conectar al servidor Flask','error',5000));
+}
+
+/* ══════════════════════════════════════════════
+   SALVAPANTALLAS — partículas + dormir
+══════════════════════════════════════════════ */
+const INACTIVIDAD_MS  = 60000;   // 60s → vuelve al SS
+const DORMIR_EXTRA_MS = 300000;  // 5 min en SS → Jagua duerme
+let ssTimer    = null;
+let dormirTimer= null;
+let ssAnimId   = null;
+let jaguaDurmiendo = false;
+
+(function initSS(){
+  const canvas = document.getElementById('ss-canvas');
+  const ctx    = canvas.getContext('2d');
+  canvas.width = 1024; canvas.height = 600;
+  const COLS = ['#4fc472','#f5c842','#c47a3a','#1976d2','#9575cd','#ffffff'];
+  let pts = Array.from({length:130}, ()=>newPt(true));
+  function newPt(rndY){
+    return { x:Math.random()*1024, y:rndY?Math.random()*600:-5,
+      r:.8+Math.random()*2, vy:.4+Math.random(), vx:(Math.random()-.5)*.5,
+      op:.3+Math.random()*.7, col:COLS[Math.floor(Math.random()*COLS.length)], fase:Math.random()*Math.PI*2 };
+  }
+  function dibujar(ts){
+    ctx.clearRect(0,0,1024,600);
+    const g=ctx.createLinearGradient(0,0,1024,600); g.addColorStop(0,'#040b05'); g.addColorStop(1,'#071209');
+    ctx.fillStyle=g; ctx.fillRect(0,0,1024,600);
+    ctx.strokeStyle='rgba(79,196,114,.04)'; ctx.lineWidth=1;
+    for(let x=0;x<1024;x+=32){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,600);ctx.stroke(); }
+    for(let y=0;y<600; y+=32){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1024,y);ctx.stroke(); }
+    pts.forEach((p,i)=>{
+      const g2=Math.sin(p.fase+ts*.001)*.25+.75;
+      ctx.globalAlpha=p.op*g2; ctx.fillStyle=p.col;
+      ctx.shadowBlur=p.r*5; ctx.shadowColor=p.col;
+      const pr=Math.max(1,Math.round(p.r));
+      ctx.fillRect(Math.round(p.x),Math.round(p.y),pr*2,pr*2);
+      ctx.shadowBlur=0;
+      p.y+=p.vy; p.x+=p.vx;
+      if(p.y>605) pts[i]=newPt(false);
     });
-    // ─────────────────────────────────────────────────────────────────────────
-    // SALVAPANTALLAS — 10 segundos de inactividad
-    // ─────────────────────────────────────────────────────────────────────────
-    (function() {
-        const INACTIVITY_MS = 10000; // 10 segundos
-        const ssEl    = document.getElementById('screensaver');
-        const canvas  = document.getElementById('screensaver-canvas');
-        const ctx     = canvas.getContext('2d');
-        let ssTimer   = null;
-        let ssActive  = false;
-        let animFrame = null;
+    ctx.globalAlpha=1;
+    ssAnimId=requestAnimationFrame(dibujar);
+  }
+  ssAnimId=requestAnimationFrame(dibujar);
 
-        // ── Partículas de estrella ──────────────────────────────────────────
-        const particles = [];
-        const PARTICLE_COUNT = 160;
+  window._ssStop  = function(){ if(ssAnimId){ cancelAnimationFrame(ssAnimId); ssAnimId=null; } };
+  window._ssStart = function(){
+    if(pantallaActual==='ss') return;
+    apagrarLed();
+    mostrar('ss');
+    jaguaDurmiendo=false;
+    jaguaEntrarSS();
+    clearTimeout(dormirTimer);
+    dormirTimer=setTimeout(()=>{ jaguaDurmiendo=true; jaguaDormido(); }, DORMIR_EXTRA_MS);
+    if(ssAnimId) cancelAnimationFrame(ssAnimId);
+    ssAnimId=requestAnimationFrame(dibujar);
+  };
+})();
 
-        function resizeCanvas() {
-            canvas.width  = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
+function resetInactividad(){
+  clearTimeout(ssTimer);
+  if(pantallaActual!=='ss') ssTimer=setTimeout(window._ssStart, INACTIVIDAD_MS);
+}
 
-        function initParticles() {
-            particles.length = 0;
-            for (let i = 0; i < PARTICLE_COUNT; i++) {
-                particles.push(createParticle(true));
-            }
-        }
+/* ══════════════════════════════════════════════
+   EVENTOS
+══════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function(){
 
-        function createParticle(randomY = false) {
-            const colors = ['#3498db','#2ecc71','#9b59b6','#e67e22','#1abc9c','#ffffff','#f1c40f'];
-            return {
-                x:     Math.random() * canvas.width,
-                y:     randomY ? Math.random() * canvas.height : -5,
-                r:     0.5 + Math.random() * 2.5,
-                speed: 0.3 + Math.random() * 1.2,
-                opacity: 0.4 + Math.random() * 0.6,
-                color:  colors[Math.floor(Math.random() * colors.length)],
-                drift:  (Math.random() - 0.5) * 0.4,
-                pulse:  Math.random() * Math.PI * 2,
-            };
-        }
+  /* Jagua inicial */
+  jaguaEntrarSS();
+  jaguaAnalizando();
+  animarJagua('jagua-res-wrap','idle');
 
-        function drawParticles(ts) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+  /* Timer de dormir al inicio en SS */
+  dormirTimer=setTimeout(()=>{ if(pantallaActual==='ss'){ jaguaDurmiendo=true; jaguaDormido(); } }, DORMIR_EXTRA_MS);
 
-            // Fondo degradado oscuro
-            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            grad.addColorStop(0, '#050a12');
-            grad.addColorStop(1, '#0a0f1e');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+  /* SS */
+  document.getElementById('btn-escanear').addEventListener('click', ()=>{
+    clearTimeout(dormirTimer); jaguaDurmiendo=false;
+    irInstrucciones();
+  });
 
-            particles.forEach((p, i) => {
-                // Pulso de brillo
-                const glow = Math.sin(p.pulse + ts * 0.001) * 0.3 + 0.7;
-                ctx.globalAlpha = p.opacity * glow;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.shadowBlur  = p.r * 6;
-                ctx.shadowColor = p.color;
-                ctx.fill();
-                ctx.shadowBlur = 0;
+  /* Instrucciones */
+  document.getElementById('btn-continuar').addEventListener('click', irCamara);
 
-                // Mover partícula
-                p.y += p.speed;
-                p.x += p.drift;
+  /* Cámara */
+  document.getElementById('btn-abrir-config').addEventListener('click', abrirConfig);
+  document.getElementById('btn-reconectar-cam').addEventListener('click', ()=>{
+    ocultarErrorIA(); reiniciarStream();
+    jaguaCamaraIdle();
+    document.getElementById('burbuja-cam').innerHTML=frase('cam');
+  });
+  document.getElementById('btn-c-blanca').addEventListener('click', ()=>seleccionarCaneca('blanca'));
+  document.getElementById('btn-c-negra').addEventListener('click',  ()=>seleccionarCaneca('negra'));
+  document.getElementById('btn-c-verde').addEventListener('click',  ()=>seleccionarCaneca('verde'));
+  document.getElementById('btn-reintentar').addEventListener('click', ()=>{
+    ocultarErrorIA(); reiniciarStream();
+    jaguaCamaraIdle();
+    document.getElementById('burbuja-cam').innerHTML=frase('cam');
+    checkHealth();
+  });
 
-                if (p.y > canvas.height + 5) {
-                    particles[i] = createParticle(false);
-                }
-            });
+  /* Resultado */
+  document.getElementById('btn-volver-inicio').addEventListener('click',   irSS);
+  document.getElementById('btn-clasificar-otro').addEventListener('click', irCamara);
 
-            ctx.globalAlpha = 1;
-        }
+  /* Config */
+  document.getElementById('btn-cerrar-config').addEventListener('click',  cerrarConfig);
+  document.getElementById('btn-guardar-config').addEventListener('click', guardarConfig);
 
-        // Líneas de conexión entre partículas cercanas
-        function drawConnections() {
-            const maxDist = 100;
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x;
-                    const dy = particles[i].y - particles[j].y;
-                    const d  = Math.sqrt(dx*dx + dy*dy);
-                    if (d < maxDist) {
-                        ctx.globalAlpha = (1 - d / maxDist) * 0.08;
-                        ctx.strokeStyle = '#3498db';
-                        ctx.lineWidth   = 0.5;
-                        ctx.beginPath();
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-            ctx.globalAlpha = 1;
-        }
+  /* Stream */
+  if(!ES_LOCAL){
+    const img=document.getElementById('cam-stream');
+    img.addEventListener('load',  onStreamLoad);
+    img.addEventListener('error', onStreamError);
+    img.src='/video/stream';
+  }
 
-        function animateScreensaver(ts) {
-            drawParticles(ts);
-            drawConnections();
-            animFrame = requestAnimationFrame(animateScreensaver);
-        }
+  /* Actividad */
+  ['touchstart','mousedown','click','keydown'].forEach(ev=>{
+    document.addEventListener(ev,()=>{ if(pantallaActual!=='ss') resetInactividad(); }, {passive:true});
+  });
 
-        // ── Mostrar / Ocultar ───────────────────────────────────────────────
-        function showScreensaver() {
-            if (ssActive) return;
-            ssActive = true;
-            resizeCanvas();
-            initParticles();
-            ssEl.classList.add('active');
-            animFrame = requestAnimationFrame(animateScreensaver);
-        }
+  /* Saludar periódicamente en SS */
+  setInterval(()=>{
+    if(pantallaActual==='ss' && !jaguaDurmiendo) jaguaSSSaludar();
+  }, 8000);
 
-        function hideScreensaver() {
-            if (!ssActive) return;
-            ssActive = false;
-            ssEl.classList.remove('active');
-            if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-            resetInactivityTimer();
-        }
+  /* Walk periódico en cámara cuando está idle */
+  setInterval(()=>{
+    if(pantallaActual==='camara' && !capturando){
+      animarJagua('jagua-cam-wrap','walk',{unaSola:true, luego:'idle'});
+    }
+  }, 12000);
 
-        // ── Timer de inactividad ────────────────────────────────────────────
-        function resetInactivityTimer() {
-            clearTimeout(ssTimer);
-            ssTimer = setTimeout(showScreensaver, INACTIVITY_MS);
-        }
+  /* Fullscreen */
+  document.addEventListener('click', function handler(){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    document.removeEventListener('click', handler);
+  });
 
-        // ── Eventos de actividad ────────────────────────────────────────────
-        const activityEvents = ['mousemove','mousedown','keydown','touchstart','touchmove','scroll','wheel','click'];
-        activityEvents.forEach(evt => {
-            document.addEventListener(evt, () => {
-                if (ssActive) hideScreensaver();
-                else resetInactivityTimer();
-            }, { passive: true });
-        });
+  /* Health check */
+  checkHealth();
 
-        window.addEventListener('resize', resizeCanvas);
+  if(ES_LOCAL) setTimeout(()=>toast('MODO PREVISUALIZACIÓN LOCAL\n(Sin Flask — datos simulados)','',6000),800);
+});
 
-            // Arrancar el timer al cargar
-            resetInactivityTimer();
-        })();
-
-        document.addEventListener('click', function() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => console.log(err));
-            }
-        }, { once: true }); // Se activa con el primer click del usuario
-    </script>
-
-    <div id="countdown-overlay">
-        <div id="countdown-text">4</div>
-    </div>
-
+})();
+</script>
 </body>
 </html>
