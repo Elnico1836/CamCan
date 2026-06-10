@@ -1,94 +1,41 @@
-# ♻️ CamCan
+# CamCan
 
-### 🚀 Sistema inteligente de clasificación de residuos con IA, ESP32 y visión por computadora
-
-![Estado](https://img.shields.io/badge/estado-funcional-brightgreen)
-![IA](https://img.shields.io/badge/IA-TensorFlow-orange)
-![Hardware](https://img.shields.io/badge/hardware-ESP32--S3-blue)
-![Licencia](https://img.shields.io/badge/licencia-educativa-lightgrey)
+Sistema embebido de clasificación de residuos sólidos mediante visión por computadora e inteligencia artificial, desarrollado sobre hardware de bajo costo (ESP32-S3 y Raspberry Pi).
 
 ---
 
-## 🎥 Demo
+## Descripción
 
-> 📌 Agrega aquí un GIF del sistema funcionando (muy recomendado)
+CamCan integra un modelo de clasificación de imágenes con un sistema embebido para determinar, en tiempo real, el tipo de residuo capturado por una cámara y orientar su disposición en una de tres categorías:
 
----
+- Caneca blanca — residuos reciclables
+- Caneca negra — residuos no reciclables
+- Caneca verde — residuos orgánicos
 
-## 📌 Descripción
-
-**CamCan** es un sistema embebido inteligente que combina:
-
-* 📸 Visión por computadora
-* 🧠 Inteligencia Artificial
-* 🔌 Hardware de bajo costo
-
-para clasificar residuos en tiempo real en:
-
-* 🟦 **Caneca Blanca** → reciclables
-* ⬛ **Caneca Negra** → no reciclables
-* 🟩 **Caneca Verde** → orgánicos
+El sistema opera de forma completamente local, sin dependencia de servicios en la nube.
 
 ---
 
-## 🧠 Arquitectura del sistema
+## Arquitectura
 
-```mermaid
-graph TD
-A[Usuario] --> B[ESP32 Camara]
-B --> C[Servidor Web ESP32]
-C --> D[Navegador]
-D --> E[Backend Flask]
-E --> F[Modelo IA h5]
-F --> E
-E --> D
-D --> G[Activacion LEDs]
+El flujo de procesamiento sigue la siguiente secuencia:
+
+```
+ESP32-CAM → Servidor web embebido → Navegador (kiosk)
+    → Backend Flask → Modelo Keras (.h5)
+    → Respuesta JSON → Retroalimentación visual (LEDs + pantalla)
 ```
 
----
-
-## ⚙️ ¿Cómo funciona?
-
-1. 📸 El **ESP32-S3** captura la imagen
-2. 🌐 Sirve una interfaz web (`camera_index.html`)
-3. 📱 El usuario accede escaneando un **QR en pantalla OLED**
-4. 📡 La imagen se envía al backend en base64
-5. 🧠 El modelo de IA procesa la imagen
-6. 📊 Se obtienen probabilidades por clase
-7. 💡 Se activa el LED correspondiente
+La imagen es capturada por el ESP32-S3, transmitida en base64 al backend Flask que corre en la Raspberry Pi, procesada por el modelo de inteligencia artificial, y el resultado se refleja tanto en la interfaz táctil como en los LEDs físicos del dispositivo.
 
 ---
 
-## 🔌 Hardware utilizado
+## Modelo de inteligencia artificial
 
-* ESP32-S3 con cámara
-* Pantalla OLED (I2C)
-* 3 LEDs indicadores
-* Conexión WiFi
-
-### 💡 Pines de LEDs
-
-* 🟦 Blanca → GPIO **45**
-* ⬛ Negra → GPIO **47**
-* 🟩 Verde → GPIO **48**
-
----
-
-## 📱 Interfaz del usuario
-
-* Acceso mediante QR generado en tiempo real
-* Interfaz web alojada en el ESP32
-* Captura y envío automático de imagen
-* Feedback visual con resultados
-
----
-
-## 🧠 Inteligencia Artificial
-
-* Modelo: **MobileNetV2 (Transfer Learning)**
-* Framework: TensorFlow / Keras
-* Entrada: imágenes 224x224
-* Salida: probabilidades por clase
+- Arquitectura base: MobileNetV2 con transfer learning
+- Framework: TensorFlow / Keras
+- Dimensión de entrada: 224 × 224 píxeles (RGB)
+- Salida: vector de probabilidades para tres clases
 
 ```json
 {
@@ -97,156 +44,127 @@ D --> G[Activacion LEDs]
 }
 ```
 
+El modelo fue entrenado sobre un dataset propio de residuos domésticos e industriales comunes en el contexto local.
+
 ---
 
-## 🌐 Backend (Flask API)
+## Backend (Flask)
 
-### 📍 Endpoint principal
+### POST /predict
 
-`POST /predict`
+Recibe una imagen codificada en base64, la preprocesa y retorna la clasificación del modelo.
 
-#### Entrada:
-
+Entrada:
 ```json
-{
-  "imagen": "base64..."
-}
+{ "imagen": "" }
 ```
 
-#### Salida:
-
+Salida:
 ```json
-{
-  "index": 1,
-  "probabilidades": [0.1, 0.8, 0.1]
-}
+{ "index": 1, "probabilidades": [0.10, 0.80, 0.10] }
 ```
 
+### GET /predict
+
+Endpoint de diagnóstico. Retorna `{ "status": "Servidor activo" }`.
+
 ---
 
-### 📍 Endpoint de prueba
+## Hardware
 
-`GET /predict`
+|
+ Componente 
+|
+ Función 
+|
+|
+---
+|
+---
+|
+|
+ ESP32-S3 con cámara 
+|
+ Captura de imagen y servidor web embebido 
+|
+|
+ Raspberry Pi 
+|
+ Ejecución del backend Flask y la interfaz kiosk 
+|
+|
+ Pantalla táctil 7" 
+|
+ Interfaz de usuario 
+|
+|
+ Pantalla OLED (I2C) 
+|
+ Visualización de IP y QR de acceso 
+|
+|
+ LEDs (GPIO 45, 47, 48) 
+|
+ Retroalimentación física por categoría 
+|
 
-```json
-{
-  "status": "Servidor activo"
-}
+---
+
+## Estructura del proyecto
+
 ```
-
----
-
-## 📡 ESP32 (Firmware)
-
-El ESP32:
-
-* Captura imágenes (`esp_camera`)
-* Sirve la web (`app_httpd.cpp`)
-* Genera QR dinámico con IP local
-* Controla LEDs según clasificación
-* Muestra información en OLED
-
----
-
-## 📁 Estructura del proyecto
-
-```bash
 CameraWebServer/
-│
 ├── CameraWebServer.ino      # Firmware ESP32
-├── app_httpd.cpp            # Servidor web embebido
-├── camera_index.h           # HTML embebido
-├── camera_index.html        # Interfaz web
-├── camera_pins.h            # Configuración de cámara
-│
-├── app.py                   # Backend Flask
-├── clasificador_canecas.h5  # Modelo IA
-│
-├── modelo.py                # Entrenamiento
-├── residuos.py              # Dataset
-├── toTensorlite.py          # Conversión modelo
-│
-├── convertir_a_h.py         # HTML → header
-├── convertir_a_html.py      # Header → HTML
-│
-├── partitions.csv           # Configuración memoria
-└── ci.json                  # Configuración adicional
+├── app_httpd.cpp            # Servidor HTTP embebido
+├── camera_index.html        # Interfaz web del ESP32
+├── camera_pins.h            # Configuración de pines de cámara
+├── app.py                   # Backend Flask (Raspberry Pi)
+├── clasificador_canecas.h5  # Modelo entrenado
+├── modelo.py                # Script de entrenamiento
+├── residuos.py              # Carga y procesamiento del dataset
+└── partitions.csv           # Configuración de memoria del ESP32
 ```
 
 ---
 
-## 🎯 Características principales
+## Instalación
 
-✅ Sistema completamente local (sin nube)
-✅ Acceso mediante QR automático
-✅ Clasificación en tiempo real
-✅ Integración hardware + software
-✅ Feedback físico con LEDs
-✅ Interfaz web embebida
-
----
-
-## ⚠️ Limitaciones
-
-* Solo clasifica **un objeto a la vez**
-* Puede fallar con múltiples objetos
-* Dependiente del dataset de entrenamiento
-
----
-
-## 🚀 Futuras mejoras
-
-* 🔥 Detección de múltiples objetos (YOLO)
-* 🎤 Integración con asistentes de voz
-* 🤖 Clasificación automática continua
-* 📊 Estadísticas de uso
-* ♻️ Sistema físico de separación
-
----
-
-## 📦 Instalación
-
-### Backend
+**Backend (Raspberry Pi)**
 
 ```bash
 pip install flask flask-cors pillow numpy tensorflow
 python app.py
 ```
 
----
-
-### ESP32
+**Firmware (ESP32)**
 
 1. Abrir `CameraWebServer.ino` en Arduino IDE
-2. Configurar WiFi
-3. Subir al ESP32
-4. Escanear QR en pantalla
+2. Configurar las credenciales WiFi
+3. Seleccionar la placa ESP32-S3 y subir el firmware
+4. El dispositivo generará un QR con su IP local en la pantalla OLED
 
 ---
 
-## 🌱 Impacto
+## Limitaciones conocidas
 
-CamCan busca mejorar la cultura de reciclaje mediante tecnología accesible, demostrando cómo la IA puede aplicarse en problemas ambientales reales.
-
----
-
-## 👨‍💻 Autor
-
-**Nicolás Alfonso Alvarado Medina**
-GitHub: https://github.com/Elnico1836
+- El modelo clasifica un único objeto por captura; escenas con múltiples residuos producen resultados poco fiables.
+- El rendimiento depende directamente de la calidad y representatividad del dataset de entrenamiento.
+- La iluminación del entorno afecta la precisión de la clasificación.
 
 ---
 
-## ⭐ Apoya el proyecto
+## Líneas de trabajo futuras
 
-Si te gustó:
-
-⭐ Dale estrella al repositorio
-🔁 Compártelo
-🛠️ Contribuye
+- Detección de múltiples objetos con arquitecturas tipo YOLO
+- Recolección de estadísticas de uso para análisis de patrones de disposición
+- Mecanismo físico de separación automatizada acoplado al sistema de clasificación
 
 ---
 
-## 📜 Licencia
+## Autor
 
-Uso educativo.
+Nicolás Alfonso Alvarado Medina — [github.com/Elnico1836](https://github.com/Elnico1836)
+
+---
+
+*Proyecto de carácter educativo.*
