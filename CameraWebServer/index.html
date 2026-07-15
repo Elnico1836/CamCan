@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1024, height=600, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CamCan — Clasificador de Canecas</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@700;800;900&display=swap');
@@ -25,18 +25,34 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  width: 1024px; height: 600px;
+  width: 100%; height: 100%;
   overflow: hidden;
   font-family: var(--body);
   background: var(--negro);
   color: var(--blanco);
-  cursor: none;
+  cursor: default;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
 }
-button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highlight-color: transparent; }
+body { display:flex; align-items:center; justify-content:center; }
+
+/* En kiosko táctil (Raspberry) ocultamos el cursor del mouse.
+   En PC / mouse, se ve normal para que quede claro qué es clickeable. */
+html.modo-tactil, html.modo-tactil * { cursor:none !important; }
+
+button { cursor: pointer; border: none; font-family: var(--body); -webkit-tap-highlight-color: transparent; }
 .pixel { font-family: var(--pixel); }
+
+/* ── ESCENARIO — tamaño de diseño fijo (1024x600), se escala con JS
+      para verse completo y nítido en cualquier pantalla (PC, proyector, Pi) ── */
+#stage {
+  width: 1024px; height: 600px;
+  position: relative;
+  flex-shrink: 0;
+  transform-origin: center center;
+  box-shadow: 0 0 60px rgba(0,0,0,.6);
+}
 
 /* ── PANTALLAS ── */
 .pantalla { position:absolute; inset:0; width:1024px; height:600px; display:none; overflow:hidden; }
@@ -82,6 +98,7 @@ button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highl
   animation: pulsarBtn 2s ease-in-out infinite;
   transition: transform .1s, box-shadow .1s;
 }
+#btn-escanear:hover  { transform: translateY(-2px); box-shadow: 0 10px 0 #7a5800, 0 20px 46px rgba(245,200,66,.6); }
 #btn-escanear:active { transform: translateY(6px); box-shadow: 0 2px 0 #7a5800; }
 @keyframes flotar { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
 @keyframes pulsarBtn {
@@ -91,10 +108,10 @@ button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highl
 .ss-hint {
   position: absolute; bottom: 22px;
   font-family: var(--pixel); font-size: 8px;
-  color: rgba(255,255,255,.22);
+  color: rgba(255,255,255,.4);
   animation: parpadeoHint 1.8s ease-in-out infinite;
 }
-@keyframes parpadeoHint { 0%,100%{opacity:.22} 50%{opacity:.7} }
+@keyframes parpadeoHint { 0%,100%{opacity:.4} 50%{opacity:.85} }
 
 /* ════════════════════════════════════
    INSTRUCCIONES
@@ -155,6 +172,7 @@ button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highl
   box-shadow: 0 5px 0 var(--verde-oscuro);
   margin-top: 2px; transition: transform .1s, box-shadow .1s;
 }
+#btn-continuar:hover  { transform: translateY(-2px); box-shadow: 0 7px 0 var(--verde-oscuro), 0 12px 26px rgba(79,196,114,.35); }
 #btn-continuar:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--verde-oscuro); }
 
 /* ════════════════════════════════════
@@ -247,13 +265,15 @@ button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highl
   position:relative; overflow:hidden;
   transition:transform .15s, border-color .15s, background .15s;
 }
-.btn-caneca:active { transform:scale(.965); }
+.btn-caneca:hover   { transform:translateX(2px); border-color:var(--cc,#555); background:rgba(255,255,255,.08); }
+.btn-caneca:active  { transform:scale(.965); }
 .btn-caneca.deshabilitada { opacity:.3; pointer-events:none; }
 .btn-caneca::before {
   content:''; position:absolute; left:0; top:0; bottom:0;
   width:5px; background:var(--cc,#555);
   border-radius:4px 0 0 4px; transition:width .2s;
 }
+.btn-caneca:hover::before  { width:7px; }
 .btn-caneca:active::before { width:9px; }
 .btn-caneca[data-c="blanca"] { --cc:#4fc3f7; }
 .btn-caneca[data-c="negra"]  { --cc:#78909c; }
@@ -354,10 +374,12 @@ button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highl
   box-shadow:3px 3px 0 rgba(0,0,0,.4); max-width:215px;
 }
 .res-botones { display:flex; gap:10px; }
-.btn-res { font-family:var(--pixel); font-size:10px; padding:14px 18px; border-radius:6px; line-height:1.6; transition:transform .1s, box-shadow .1s; }
+.btn-res { font-family:var(--pixel); font-size:10px; padding:14px 18px; border-radius:6px; line-height:1.6; transition:transform .1s, box-shadow .1s, background .15s; }
 .btn-res:active { transform:translateY(3px); }
 .btn-res-volver { background:rgba(255,255,255,.09); color:rgba(255,255,255,.75); border:2px solid rgba(255,255,255,.18); }
+.btn-res-volver:hover { background:rgba(255,255,255,.16); }
 .btn-res-nuevo  { background:var(--verde); color:#fff; box-shadow:0 4px 0 var(--verde-oscuro); }
+.btn-res-nuevo:hover  { background:var(--verde-claro); transform:translateY(-2px); box-shadow:0 6px 0 var(--verde-oscuro); }
 .btn-res-nuevo:active { box-shadow:0 1px 0 var(--verde-oscuro); }
 
 /* ════════════════════════════════════
@@ -403,7 +425,7 @@ button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highl
 ════════════════════════════════════ */
 #confetti { position:fixed; inset:0; pointer-events:none; z-index:900; overflow:hidden; }
 .conf-p { position:absolute; top:-14px; border-radius:2px; animation:confCaer linear forwards; }
-@keyframes confCaer { 0%{transform:translateY(0) rotate(0deg);opacity:1} 90%{opacity:1} 100%{transform:translateY(112vh) rotate(780deg);opacity:0} }
+@keyframes confCaer { 0%{transform:translateY(0) rotate(0deg);opacity:1} 90%{opacity:1} 100%{transform:translateY(680px) rotate(780deg);opacity:0} }
 
 #toasts { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:9000; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; }
 .toast { background:rgba(10,25,14,.95); border:2px solid var(--verde); border-radius:8px; padding:10px 20px; font-family:var(--pixel); font-size:9px; color:#fff; line-height:1.7; text-align:center; animation:toastShow .3s ease both; pointer-events:auto; }
@@ -419,6 +441,7 @@ button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highl
 </style>
 </head>
 <body>
+<div id="stage">
 
 <div id="confetti"></div>
 <div id="toasts"></div>
@@ -626,6 +649,28 @@ button { cursor: none; border: none; font-family: var(--body); -webkit-tap-highl
    DETECCIÓN LOCAL vs Flask
 ══════════════════════════════════════════════════════ */
 const ES_LOCAL = (location.protocol === 'file:' || location.hostname === '' || location.hostname === 'localhost' && location.port === '');
+
+/* ══════════════════════════════════════════════════════
+   ESCALADO RESPONSIVE — el diseño está pensado para 1024×600
+   (pantalla de la Raspberry) pero se escala automáticamente
+   para verse completo en cualquier PC, laptop o proyector,
+   sin recortarse ni quedar "pegado" en una resolución fija.
+══════════════════════════════════════════════════════ */
+function ajustarEscala() {
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  const escala = Math.min(window.innerWidth / 1024, window.innerHeight / 600);
+  stage.style.transform = 'scale(' + escala + ')';
+}
+window.addEventListener('resize', ajustarEscala);
+window.addEventListener('orientationchange', ajustarEscala);
+ajustarEscala();
+
+/* Cursor: en pantalla táctil (Raspberry) se oculta; en PC / mouse
+   se ve normal para que quede claro qué se puede hacer clic. */
+if (window.matchMedia('(pointer: coarse)').matches && !ES_LOCAL) {
+  document.documentElement.classList.add('modo-tactil');
+}
 
 /* ══════════════════════════════════════════════════════
    ██ JAGUAPANELA — SISTEMA DE SPRITES PNG ██
@@ -991,7 +1036,7 @@ function confetti() {
   const cols = ['#2ecc71','#f5c842','#e53935','#1976d2','#f07d2a','#9575cd','#fff'];
   for(let i=0;i<72;i++){
     const p = document.createElement('div'); p.className='conf-p';
-    p.style.left = Math.random()*100+'vw';
+    p.style.left = Math.random()*100+'%';
     p.style.background = cols[Math.floor(Math.random()*cols.length)];
     p.style.width  = (7+Math.random()*7)+'px';
     p.style.height = (9+Math.random()*9)+'px';
@@ -1194,5 +1239,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 })();
 </script>
+
+</div><!-- /#stage -->
 </body>
 </html>
