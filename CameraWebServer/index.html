@@ -280,6 +280,11 @@ button { cursor: pointer; border: none; font-family: var(--body); -webkit-tap-hi
 .btn-caneca[data-c="verde"]  { --cc:#66bb6a; }
 .btn-caneca-emoji  { font-size:32px; flex-shrink:0; }
 .btn-caneca-nombre { font-size:16px; font-weight:900; }
+/* Cada nombre de caneca tiene su propio color legible, distinto del verde
+   ambiental de la interfaz, para que las tres se distingan de un vistazo. */
+.btn-caneca[data-c="blanca"] .btn-caneca-nombre { color: #7ee2ff; }
+.btn-caneca[data-c="negra"]  .btn-caneca-nombre { color: #cfd8dc; }
+.btn-caneca[data-c="verde"]  .btn-caneca-nombre { color: #ffca57; }
 .btn-caneca-tipo   { font-size:12px; color:rgba(255,255,255,.45); font-weight:700; margin-top:2px; }
 .canecas-error {
   display:none; flex-direction:column; align-items:center; justify-content:center;
@@ -666,11 +671,17 @@ window.addEventListener('resize', ajustarEscala);
 window.addEventListener('orientationchange', ajustarEscala);
 ajustarEscala();
 
-/* Cursor: en pantalla táctil (Raspberry) se oculta; en PC / mouse
-   se ve normal para que quede claro qué se puede hacer clic. */
-if (window.matchMedia('(pointer: coarse)').matches && !ES_LOCAL) {
+/* Cursor dinámico: se oculta apenas se detecta un toque real en pantalla,
+   y reaparece apenas se detecta movimiento real de mouse (no el mousemove
+   "fantasma" que algunos navegadores disparan después de un touch). */
+document.addEventListener('touchstart', () => {
   document.documentElement.classList.add('modo-tactil');
-}
+}, {passive:true});
+document.addEventListener('mousemove', (e) => {
+  if (e.movementX !== 0 || e.movementY !== 0) {
+    document.documentElement.classList.remove('modo-tactil');
+  }
+}, {passive:true});
 
 /* ══════════════════════════════════════════════════════
    ██ JAGUAPANELA — SISTEMA DE SPRITES PNG ██
@@ -722,11 +733,11 @@ const SECUENCIAS = {
 
 /* Tamaño base de Jagua según contenedor (en px, antes de escala) */
 const ESCALAS = {
-  'jagua-ss-wrap':         2.1,
-  'jagua-inst-wrap':       1.55,
-  'jagua-cam-wrap':        1.05,
-  'jagua-res-wrap':        1.0,
-  'jagua-analizando-wrap': 1.2,
+  'jagua-ss-wrap':         2.7,   // pantalla de inicio — la "marca", más grande
+  'jagua-inst-wrap':       1.9,
+  'jagua-cam-wrap':        1.3,
+  'jagua-res-wrap':        1.2,
+  'jagua-analizando-wrap': 1.4,
 };
 
 /* Tamaño base del PNG original (ajusta si tus PNGs son de otro tamaño) */
