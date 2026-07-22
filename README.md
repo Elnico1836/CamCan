@@ -164,6 +164,8 @@ python app.py
 ## Autor
 
 Nicolás Alfonso Alvarado Medina — [github.com/Elnico1836](https://github.com/Elnico1836)
+Maria Paula Ortiz Cuervo
+Mateo Jeronimo Valencia Bernal
 
 ---
 
