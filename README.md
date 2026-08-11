@@ -84,42 +84,21 @@ Endpoint de diagnóstico. Retorna `{ "status": "Servidor activo" }`.
 
 ## Hardware
 
-|
- Componente 
-|
- Función 
-|
-|
----
-|
----
-|
-|
- ESP32-S3 con cámara 
-|
- Captura de imagen y servidor web embebido 
-|
-|
- Raspberry Pi 
-|
- Ejecución del backend Flask y la interfaz kiosk 
-|
-|
- Pantalla táctil 7" 
-|
- Interfaz de usuario 
-|
-|
- Pantalla OLED (I2C) 
-|
- Visualización de IP y QR de acceso 
-|
-|
- LEDs (GPIO 45, 47, 48) 
-|
- Retroalimentación física por categoría 
-|
+Componente	Función
+ESP32-S3 con cámara	Captura de imágenes y servidor web embebido
+Raspberry Pi	Ejecución del backend Flask y navegador en modo kiosk
+Pantalla táctil 7"	Interfaz de usuario
+OLED mediante I2C	Visualización de IP y código QR de acceso
+LEDs	Retroalimentación física según la categoría detectada
+LEDs
 
+El sistema utiliza los siguientes GPIO:
+
+GPIO 45
+GPIO 47
+GPIO 48
+
+Los LEDs permiten proporcionar una indicación física de la clasificación realizada por el modelo.
 ---
 
 ## Estructura del proyecto
