@@ -18,11 +18,11 @@ El sistema opera de forma completamente local, sin dependencia de servicios en l
 
 ## Vista del proyecto
 
-<p align="center"> <img src="CameraWebServer/img/1.jpg" width="700"> </p>
+<p align="center"> <img src="CameraWebServer/img/1.jpeg" width="700"> </p>
 
-<p align="center"> <img src="CameraWebServer/img/2.jpg" width="700"> </p>
+<p align="center"> <img src="CameraWebServer/img/2.jpeg" width="700"> </p>
 
-<p align="center"> <img src="CameraWebServer/img/3.jpg" width="700"> </p>
+<p align="center"> <img src="CameraWebServer/img/3.jpeg" width="700"> </p>
 
 ---
 
